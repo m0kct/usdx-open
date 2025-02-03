@@ -14,5 +14,6 @@ References:
 * https://lipkowski.com/2024/11/28/usdx-simple-modifications/
 * https://www.vk4sn.com/Radios/USDX
 * https://www.youtube.com/watch?v=oPDza8W7pGQ
+* https://www.youtube.com/watch?v=Zh-KQWINVTw
 * https://github.com/TekMaker/uSDX-QRP-Transceiver/blob/main/uSDR%20Manual_V1.0.pdf
 
