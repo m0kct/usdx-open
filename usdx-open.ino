@@ -5064,9 +5064,9 @@ int8_t paramAction(uint8_t action, uint8_t id = ALL)  // list of parameters
 	if (id == ALL) for (id = 1; id != N_ALL_PARAMS + 1; id++) paramAction(action, id);  // for all parameters
 
 	switch (id) {    // Visible parameters
-	case VOLUME:  paramAction(action, volume, 0x11, F("Vol"), NULL, -1, 16, false); break;  // GW8RDI mod - "Volume"
+	case VOLUME:  paramAction(action, volume, 0x11, F("Volume"), NULL, -1, 16, false); break;  // GW8RDI mod - "Volume"
 	case MODE:    paramAction(action, mode, 0x12, F("Mode"), mode_label, 0, _N(mode_label) - 1, false); break;
-	case FILTER:  paramAction(action, filt, 0x13, F("FilterBW"), filt_label, 0, _N(filt_label) - 1, false); break;
+	case FILTER:  paramAction(action, filt, 0x13, F("Filter BW"), filt_label, 0, _N(filt_label) - 1, false); break;
 #ifndef TRUSDX
 	case BAND:    paramAction(action, bandval, 0x14, F("Band"), band_label, 1, _N(band_label) - 2, false); break;  // G8RDI mod - changed min to 1 as 160M not in use, and _N(band_label) - 1 to -2 as 6m also
 #else
@@ -5096,9 +5096,9 @@ int8_t paramAction(uint8_t action, uint8_t id = ALL)  // list of parameters
 			FirFilterSetup(7 + (((nr - 2) - 1) * 2), filt_val[filt], F_SAMP_RX / 8);  // GW8RDI mod
 #endif
 		break;
-	case ATT:     paramAction(action, att, 0x1A, F("ATT"), att_label, 0, 7, false); break;
-	case ATT2:    paramAction(action, att2, 0x1B, F("ATT2"), NULL, 0, 16, false); break;
-	case SMETER:  paramAction(action, smode, 0x1C, F("S-Meter"), smode_label, 0, _N(smode_label) - 1, false); break;
+	case ATT:     paramAction(action, att, 0x1A, F("Att 1"), att_label, 0, 7, false); break;
+	case ATT2:    paramAction(action, att2, 0x1B, F("Att 2"), NULL, 0, 16, false); break;
+	case SMETER:  paramAction(action, smode, 0x1C, F("S Meter"), smode_label, 0, _N(smode_label) - 1, false); break;
 #ifdef SWR_METER
 	case SWRMETER:  paramAction(action, swrmeter, 0x1D, F("SWR Meter"), swr_label, 0, _N(swr_label) - 1, false); break;
 #endif
@@ -5149,17 +5149,17 @@ int8_t paramAction(uint8_t action, uint8_t id = ALL)  // list of parameters
 	case CWMSG1:    paramAction(action, cw_msg[0], 0x42, F("CQ Msg"), sizeof(cw_msg)); break;
 #endif
 #endif
-	case PWM_MIN: paramAction(action, pwm_min, 0x81, F("PA bias min"), NULL, 0, pwm_max - 1, false); break;
-	case PWM_MAX: paramAction(action, pwm_max, 0x82, F("PA max"), NULL, pwm_min, 255, false); break;
-  ///case PWM_MAX: paramAction(action, pwm_max, 0x82, F("PA Bias max"), NULL, pwm_min, 255, false); break;
-	case SIFXTAL: paramAction(action, si5351.fxtal, 0x83, F("Ref frq"), NULL, 14000000, 28000000, false); break;
-	case IQ_ADJ:  paramAction(action, rx_ph_q, 0x84, F("IQ phase"), NULL, 0, 180, false); break;
+	case PWM_MIN: paramAction(action, pwm_min, 0x81, F("PA Bias Min"), NULL, 0, pwm_max - 1, false); break;
+	case PWM_MAX: paramAction(action, pwm_max, 0x82, F("PA Max"), NULL, pwm_min, 255, false); break;
+  ///case PWM_MAX: paramAction(action, pwm_max, 0x82, F("PA Bias Max"), NULL, pwm_min, 255, false); break;
+	case SIFXTAL: paramAction(action, si5351.fxtal, 0x83, F("Ref Freq"), NULL, 14000000, 28000000, false); break;
+	case IQ_ADJ:  paramAction(action, rx_ph_q, 0x84, F("IQ Phase"), NULL, 0, 180, false); break;
 #ifdef CAL_IQ
 	case CALIB:   if (dsp_cap != SDR) paramAction(action, cal_iq_dummy, 0x85, F("IQ Test/Cal."), NULL, 0, 0, false); break;
 #endif
 #ifdef CAT
 #if defined(CAT_FAST) || defined(CAT_STREAMING)
-	case CAT_ACTIVE: paramAction(action, cat_enabled, 0x86, F("CAT115K"), offon_label, 0, 1, false);       // CAT115K2-81N
+	case CAT_ACTIVE: paramAction(action, cat_enabled, 0x86, F("CAT 115K"), offon_label, 0, 1, false);       // CAT115K2-81N
   if (cat_enabled)  // G8RDI mod 230401
 	{
 		Serial.begin(16000000ULL * 115200 / F_MCU); // corrected for F_CPU=20M
@@ -5170,7 +5170,7 @@ int8_t paramAction(uint8_t action, uint8_t id = ALL)  // list of parameters
 	}
   break;
 #else
-	case CAT_ACTIVE: paramAction(action, cat_enabled, 0x86, F("CAT38K"), offon_label, 0, 1, false);   // CAT38K4-81N
+	case CAT_ACTIVE: paramAction(action, cat_enabled, 0x86, F("CAT 38K"), offon_label, 0, 1, false);   // CAT38K4-81N
   if (cat_enabled)  // G8RDI mod 230401
 	{
 		Serial.begin(16000000ULL * 38400 / F_MCU); // corrected for F_CPU=20M
@@ -5183,16 +5183,16 @@ int8_t paramAction(uint8_t action, uint8_t id = ALL)  // list of parameters
 #endif
 #endif
 #ifdef QUAD
-	case QUAD_ACTIVE: paramAction(action, quad_enabled, 0x87, F("QUAD"), offon_label, 0, 1, false); break;
+	case QUAD_ACTIVE: paramAction(action, quad_enabled, 0x87, F("Quad"), offon_label, 0, 1, false); break;
 #endif
 #ifdef DEBUG
-	case SR:      paramAction(action, sr, 0x91, F("Sample rate"), NULL, INT32_MIN, INT32_MAX, false); break;
-	case CPULOAD: paramAction(action, cpu_load, 0x92, F("CPU load %"), NULL, INT32_MIN, INT32_MAX, false); break;
-	case PARAM_A: paramAction(action, param_a, 0x93, F("ParamA"), NULL, 0, UINT16_MAX, false); break;
-	case PARAM_B: paramAction(action, param_b, 0x94, F("ParamB"), NULL, INT16_MIN, INT16_MAX, false); break;
-	case PARAM_C: paramAction(action, param_c, 0x95, F("ParamC"), NULL, INT16_MIN, INT16_MAX, false); break;
+	case SR:      paramAction(action, sr, 0x91, F("Sample Rate"), NULL, INT32_MIN, INT32_MAX, false); break;
+	case CPULOAD: paramAction(action, cpu_load, 0x92, F("CPU Load %"), NULL, INT32_MIN, INT32_MAX, false); break;
+	case PARAM_A: paramAction(action, param_a, 0x93, F("Param A"), NULL, 0, UINT16_MAX, false); break;
+	case PARAM_B: paramAction(action, param_b, 0x94, F("Param B"), NULL, INT16_MIN, INT16_MAX, false); break;
+	case PARAM_C: paramAction(action, param_c, 0x95, F("Param C"), NULL, INT16_MIN, INT16_MAX, false); break;
 #endif
-	case BACKL:   paramAction(action, backlight, 0xA1, F("Light"), offon_label, 0, 1, false); break;   // GW8RDI "Backlight" workaround for varying N_PARAM and not being able to overflowing default cases properly
+	case BACKL:   paramAction(action, backlight, 0xA1, F("Backlight"), offon_label, 0, 1, false); break;   // GW8RDI "Backlight" workaround for varying N_PARAM and not being able to overflowing default cases properly
 		// Invisible parameters
 	case FREQA:   paramAction(action, vfo[VFOA], 0, NULL, NULL, 0, 0, false); break;
 	case FREQB:   paramAction(action, vfo[VFOB], 0, NULL, NULL, 0, 0, false); break;
