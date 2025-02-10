@@ -228,7 +228,7 @@ Global variables use 1499 bytes (73%) of dynamic memory, leaving 549 bytes for l
 #define CAT              1   // CAT-interface - OTHER OPTIONS, SUCH AS CW_MESSAGES and KEEP_BAND_DATA MAY TO BE DISABLED TO MAKE SPACE FOR CAT
 //#define CAT_EXT        1   // Extended CAT support: remote button and screen control commands over CAT
 //#define CAT_STREAMING    1   // Streams audio and IQ, only 8KHz b/w, & needs faster 115200 baud RS232
-#define CAT_FAST         1   // Uses faster 115200 baud (can be changed to 57600), else 38400, 8, 1, N.
+//#define CAT_FAST         1   // Uses faster 115200 baud (can be changed to 57600), else 38400, 8, 1, N.
 
 // If short of memory on compile and not using Spectrum display, disable CAT_XO_CMD:- Like this:-> //#define CAT_XO_CMD
 #ifdef CAT
@@ -510,11 +510,11 @@ uint8_t inv = 0;
 #define IAMBICA  0x00     // 0 for Iambic A, 1 for Iambic B
 #define SINGLE   2        // Keyer Mode 0 1 -> Iambic2  2 ->SINGLE
 
-int keyer_speed = 25;
+int keyer_speed = 15;
 static unsigned long ditTime;                    // No. milliseconds per dit
 static uint8_t keyerControl;
 static uint8_t keyerState;
-static uint8_t keyer_mode = 2; //->  SINGLE
+static uint8_t keyer_mode = 1; //->  SINGLE
 static uint8_t keyer_swap = 0; //->  DI/DAH
 
 static uint32_t ktimer;
@@ -2313,7 +2313,7 @@ volatile uint8_t vox_thresh = (1 << 1); //(1 << 2);
 #endif
 volatile uint8_t drive = 2;   // hmm.. drive>2 impacts cpu load..why?
 
-static uint8_t cat_enabled = false;  // G8RDI mod - added
+static uint8_t cat_enabled = true;  // G8RDI mod - added
 static uint8_t quad_enabled = false;  // G8RDI mod - added run time enabling
 
 static uint8_t error_code = 0;      // G8RDI mod - added LCD error code
@@ -2404,8 +2404,8 @@ inline int16_t ssb(int16_t in)
 }
 
 #define MIC_ATTEN  0  // 0*6dB attenuation (note that the LSB bits are quite noisy)
-volatile int8_t mox = 0;
-volatile int8_t volume = 12;
+volatile int8_t mox = 1;
+volatile int8_t volume = 9;
 
 // This is the ADC ISR, issued with sample-rate via timer1 compb interrupt.
 // It performs in real-time the ADC sampling, calculation of SSB phase-differences, calculation of SI5351 frequency registers and send the registers to SI5351 over I2C.
@@ -4353,7 +4353,7 @@ volatile uint8_t semi_qsk = false;
 // We measure the average amplitude of the signal (see slow_dsp()) but the S-meter should be based on RMS value.
 // So we multiply by 0.707/0.639 in an attempt to roughly compensate, although that only really works if the input
 // is a sine wave
-uint8_t smode = 1;
+uint8_t smode = 2;
 uint32_t max_absavg256 = 0;
 int16_t dbm;
 
@@ -5039,7 +5039,7 @@ const char* swr_label[] = { "Off", "FwdSWR", "FwdRef", "VFwdVREF" };  // GW8RDI 
 #endif
 const char* cw_tone_label[] = { "700", "600" };
 #ifdef KEYER
-const char* keyer_mode_label[] = { "Iambic A", "Iambic B","Straight" };  // GW8RDI mod - byte saving was "Iambic A"
+const char* keyer_mode_label[] = { "Iambic A", "Iambic B", "Straight" };  // GW8RDI mod - byte saving was "Iambic A"
 #endif
 const char* agc_label[] = { "Off", "Fast", "Slow" };
 
@@ -5126,7 +5126,7 @@ int8_t paramAction(uint8_t action, uint8_t id = ALL)  // list of parameters
 	case TONE_VOL: paramAction(action, tone_vol, 0x29, F("Tone Vol"), NULL, 0, 16, false); break;
 #endif
 #ifdef VOX_ENABLE
-	case VOX:     paramAction(action, vox, 0x31, F("VOX"), offon_label, 0, 1, false); break;
+	case VOX:     paramAction(action, vox, 0x31, F("VoX"), offon_label, 0, 1, false); break;
 	case VOXGAIN: paramAction(action, vox_thresh, 0x32, F("Noise Gate"), NULL, 0, 255, false); break; // GW8RDI mod - "Noise Gate" save bytes
 #endif
 	case DRIVE:   paramAction(action, drive, 0x33, F("TX Drive"), NULL, 0, 8, false); break;
@@ -5134,7 +5134,7 @@ int8_t paramAction(uint8_t action, uint8_t id = ALL)  // list of parameters
 	case TXDELAY: paramAction(action, txdelay, 0x34, F("TX Delay"), NULL, 0, 255, false); break;
 #endif
 #ifdef MOX_ENABLE
-	case MOX:     paramAction(action, mox, 0x35, F("MOX"), NULL, 0, 2, false); break;
+	case MOX:     paramAction(action, mox, 0x35, F("MoX"), NULL, 0, 2, false); break;
 #endif
 #ifdef CW_MESSAGE
 	case CWINTERVAL: paramAction(action, cw_msg_interval, 0x41, F("CQ Interval"), NULL, 0, 60, false); break;
