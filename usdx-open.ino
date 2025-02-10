@@ -5008,7 +5008,7 @@ static uint8_t pwm_max = 255;  // PWM value for which PA reaches its maximum: 96
 static uint8_t pwm_max = 160;  // PWM value for which PA reaches its maximum:  128 for biasing BS170 directly, 160 for IRFI510G
 #endif
 
-const char* offon_label[2] = { "OFF", "ON" };
+const char* offon_label[2] = { "Off", "On" };
 #if(F_MCU > 16000000)
 const char* filt_label[N_FILT + 1] = { "Full", "3000", "2400", "1800", "500", "200", "100", "50" };
 #else
@@ -5025,23 +5025,23 @@ const char* band_label[N_BANDS] = { "x", "80m", "60m", "40m", "30m", "20m", "17m
 const char* stepsize_label[] = { "10M", "1M", ".5M", "100k", "10k", "1k", ".5k", "100", "10", "1" };  // GW8RDI 0 b4 0. removed to save memory
 const char* att_label[] = { "0dB", "-13dB", "-20dB", "-33dB", "-40dB", "-53dB", "-60dB", "-73dB" };
 #ifdef CLOCK
-const char* smode_label[] = { "OFF", "dBm", "S", "Sbar", "wpm", "Vss", "time" };
+const char* smode_label[] = { "Off", "dBm", "S", "S bar", "WPM", "Vss", "Time" };
 #else
 #ifdef VSS_METER
-const char* smode_label[] = { "OFF", "dBm", "S", "Sbar", "wpm", "Vss" };
+const char* smode_label[] = { "Off", "dBm", "S", "S bar", "WPM", "Vss" };
 #else
-const char* smode_label[] = { "OFF", "dBm", "S", "Sbar", "wpm" };
+const char* smode_label[] = { "Off", "dBm", "S", "S bar", "WPM" };
 #endif
 #endif
 #ifdef SWR_METER
 ///const char* swr_label[] = { "OFF", "FWD-SWR", "FWD-REF", "VFWD-VREF" };
-const char* swr_label[] = { "OFF", "FwdSWR", "FwdRef", "VFwdVREF" };  // GW8RDI mod - byte saving
+const char* swr_label[] = { "Off", "FwdSWR", "FwdRef", "VFwdVREF" };  // GW8RDI mod - byte saving
 #endif
 const char* cw_tone_label[] = { "700", "600" };
 #ifdef KEYER
-const char* keyer_mode_label[] = { "IambicA", "IambicB","Straight" };  // GW8RDI mod - byte saving was "Iambic A"
+const char* keyer_mode_label[] = { "Iambic A", "Iambic B","Straight" };  // GW8RDI mod - byte saving was "Iambic A"
 #endif
-const char* agc_label[] = { "OFF", "Fast", "Slow" };
+const char* agc_label[] = { "Off", "Fast", "Slow" };
 
 #define _N(a) sizeof(a)/sizeof(a[0])
 
