@@ -2304,7 +2304,7 @@ inline int16_t arctan3(int16_t q, int16_t i)  // error ~ 0.8 degree
 
 uint8_t lut[256];
 volatile uint8_t amp;
-#define MORE_MIC_GAIN   1       // 1.02w adds more microphone gain, improving overall SSB quality (when speaking further away from microphone)
+//#define MORE_MIC_GAIN   1       // 1.02w adds more microphone gain, improving overall SSB quality (when speaking further away from microphone)
 #define DIG_MODE  1 // optimization for digital modes: for super flat TX spectrum, (only down < 100Hz to cut-off DC components)
 #ifdef MORE_MIC_GAIN
 volatile uint8_t vox_thresh = (1 << 2);
