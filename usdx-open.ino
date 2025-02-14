@@ -2305,8 +2305,12 @@ inline int16_t arctan3(int16_t q, int16_t i)  // error ~ 0.8 degree
 uint8_t lut[256];
 volatile uint8_t amp;
 #define MORE_MIC_GAIN   1       // 1.02w adds more microphone gain, improving overall SSB quality (when speaking further away from microphone)
+#define DIG_MODE  1 // optimization for digital modes: for super flat TX spectrum, (only down < 100Hz to cut-off DC components)
 #ifdef MORE_MIC_GAIN
 volatile uint8_t vox_thresh = (1 << 2);
+#ifdef DIG_MODE
+volatile uint8_t dig_mode = 0;
+#endif
 #else
 volatile uint8_t vox_thresh = (1 << 1); //(1 << 2);
 #endif
@@ -2328,18 +2332,21 @@ inline int16_t ssb(int16_t in)
 	static int16_t v[16];
 	for (j = 0; j != 15; j++) v[j] = v[j + 1];
 #ifdef MORE_MIC_GAIN
-	//#define DIG_MODE  // optimization for digital modes: for super flat TX spectrum, (only down < 100Hz to cut-off DC components)
 #ifdef DIG_MODE
-	int16_t ac = in;
-	dc = (ac + (7) * dc) / (7 + 1);  // hpf: slow average
-	v[15] = (ac - dc) / 2;           // hpf (dc decoupling)  (-6dB gain to compensate for DC-noise)
-#else
-	int16_t ac = in * 2;             //   6dB gain (justified since lpf/hpf is losing -3dB)
-	ac = ac + z1;                    // lpf
-	z1 = (in - (2) * z1) / (2 + 1);  // lpf: notch at Fs/2 (alias rejecting)
-	dc = (ac + (2) * dc) / (2 + 1);  // hpf: slow average
-	v[15] = (ac - dc);               // hpf (dc decoupling)
-#endif //DIG_MODE
+	if (dig_mode) {
+		int16_t ac = in;
+		dc = (ac + (7) * dc) / (7 + 1);  // hpf: slow average
+		v[15] = (ac - dc) / 2;           // hpf (dc decoupling)  (-6dB gain to compensate for DC-noise)
+	} else {
+#endif
+		int16_t ac = in * 2;             //   6dB gain (justified since lpf/hpf is losing -3dB)
+		ac = ac + z1;                    // lpf
+		z1 = (in - (2) * z1) / (2 + 1);  // lpf: notch at Fs/2 (alias rejecting)
+		dc = (ac + (2) * dc) / (2 + 1);  // hpf: slow average
+		v[15] = (ac - dc);               // hpf (dc decoupling)
+#ifdef DIG_MODE
+	}
+#endif
 	i = v[7] * 2;  // 6dB gain for i, q  (to prevent quanitization issues in hilbert transformer and phase calculation, corrected for magnitude calc)
 	q = ((v[0] - v[14]) * 2 + (v[2] - v[12]) * 8 + (v[4] - v[10]) * 21 + (v[6] - v[8]) * 16) / 64 + (v[6] - v[8]); // Hilbert transform, 40dB side-band rejection in 400..1900Hz (@4kSPS) when used in image-rejection scenario; (Hilbert transform require 5 additional bits)
 
@@ -5047,10 +5054,10 @@ const char* agc_label[] = { "Off", "Fast", "Slow" };
 #define N_PARAMS 44+3  // number of (visible) parameters  // G8RDI mod +3 for added visible menu items
 #ifdef KEEP_BAND_DATA
 #define I_PARAMS 5+9
-enum params_t { _NULL, VOLUME, MODE, FILTER, BAND, STEP, VFOSEL, RIT, AGC, NR, ATT, ATT2, SMETER, SWRMETER, CWDEC, CWTONE, CWOFF, SEMIQSK, KEY_WPM, KEY_MODE, KEY_PIN, KEY_TX, TONE_VOL, VOX, VOXGAIN, DRIVE, TXDELAY, MOX, CWINTERVAL, CWMSG1, CWMSG2, CWMSG3, CWMSG4, CWMSG5, CWMSG6, PWM_MIN, PWM_MAX, SIFXTAL, IQ_ADJ, CAT_ACTIVE, QUAD_ACTIVE, CALIB, SR, CPULOAD, PARAM_A, PARAM_B, PARAM_C, BACKL, FREQA, FREQB, MODEA, MODEB, VERS, BAND_DATA0, BAND_DATA1, BAND_DATA2, BAND_DATA3, BAND_DATA4, BAND_DATA5, BAND_DATA6, BAND_DATA7, BAND_DATA8, ALL = 0xff };
+enum params_t { _NULL, VOLUME, MODE, FILTER, BAND, STEP, VFOSEL, RIT, AGC, NR, ATT, ATT2, SMETER, SWRMETER, CWDEC, CWTONE, CWOFF, SEMIQSK, KEY_WPM, KEY_MODE, KEY_PIN, KEY_TX, TONE_VOL, VOX, VOXGAIN, DRIVE, TXDELAY, MOX, DIGI, CWINTERVAL, CWMSG1, CWMSG2, CWMSG3, CWMSG4, CWMSG5, CWMSG6, PWM_MIN, PWM_MAX, SIFXTAL, IQ_ADJ, CAT_ACTIVE, QUAD_ACTIVE, CALIB, SR, CPULOAD, PARAM_A, PARAM_B, PARAM_C, BACKL, FREQA, FREQB, MODEA, MODEB, VERS, BAND_DATA0, BAND_DATA1, BAND_DATA2, BAND_DATA3, BAND_DATA4, BAND_DATA5, BAND_DATA6, BAND_DATA7, BAND_DATA8, ALL = 0xff };
 #else
 #define I_PARAMS 5
-enum params_t { _NULL, VOLUME, MODE, FILTER, BAND, STEP, VFOSEL, RIT, AGC, NR, ATT, ATT2, SMETER, SWRMETER, CWDEC, CWTONE, CWOFF, SEMIQSK, KEY_WPM, KEY_MODE, KEY_PIN, KEY_TX, TONE_VOL, VOX, VOXGAIN, DRIVE, TXDELAY, MOX, CWINTERVAL, CWMSG1, CWMSG2, CWMSG3, CWMSG4, CWMSG5, CWMSG6, PWM_MIN, PWM_MAX, SIFXTAL, IQ_ADJ, CAT_ACTIVE, QUAD_ACTIVE, CALIB, SR, CPULOAD, PARAM_A, PARAM_B, PARAM_C, BACKL, FREQA, FREQB, MODEA, MODEB, VERS, ALL = 0xff };
+enum params_t { _NULL, VOLUME, MODE, FILTER, BAND, STEP, VFOSEL, RIT, AGC, NR, ATT, ATT2, SMETER, SWRMETER, CWDEC, CWTONE, CWOFF, SEMIQSK, KEY_WPM, KEY_MODE, KEY_PIN, KEY_TX, TONE_VOL, VOX, VOXGAIN, DRIVE, TXDELAY, MOX, DIGI, CWINTERVAL, CWMSG1, CWMSG2, CWMSG3, CWMSG4, CWMSG5, CWMSG6, PWM_MIN, PWM_MAX, SIFXTAL, IQ_ADJ, CAT_ACTIVE, QUAD_ACTIVE, CALIB, SR, CPULOAD, PARAM_A, PARAM_B, PARAM_C, BACKL, FREQA, FREQB, MODEA, MODEB, VERS, ALL = 0xff };
 #endif
 #define N_ALL_PARAMS (N_PARAMS+I_PARAMS)  // number of parameters
 
@@ -5134,6 +5141,11 @@ int8_t paramAction(uint8_t action, uint8_t id = ALL)  // list of parameters
 #endif
 #ifdef MOX_ENABLE
 	case MOX:     paramAction(action, mox, 0x35, F("MoX"), NULL, 0, 2, false); break;
+#endif
+#ifdef MORE_MIC_GAIN
+#ifdef DIG_MODE
+	case DIGI:    paramAction(action, dig_mode, 0x36, F("Digital mode"), offon_label, 0, 1, false); break;
+#endif
 #endif
 #ifdef CW_MESSAGE
 	case CWINTERVAL: paramAction(action, cw_msg_interval, 0x41, F("CQ Interval"), NULL, 0, 60, false); break;
