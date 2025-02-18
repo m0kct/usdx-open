@@ -243,6 +243,8 @@ Global variables use 1499 bytes (73%) of dynamic memory, leaving 549 bytes for l
 #endif
 #endif
 
+#define CAT_FW_CMD 1 // CAT FW (filter width) command (get only)
+
 // Lines below NEEDED FOR CW, removed to make space for CAT
 #define KEYER            1   // CW keyer for Iambic - NOTE: Auto CW msg sending aborts if not installed as changes dit timing. Can be removed to save memory for CAT
 #define KEY_CLICK        1   // G8RDI mod - may be removed to free memory for CAT - NEEDED FOR CW msg sending else CW TX sounds mushy & CW msg sending stops after one peep! // Reduce key clicks by envelope shaping
@@ -5442,6 +5444,11 @@ void analyseCATcmd()    // Supported Kenwood TS-480 protocol CAT commands
 		Command_XO();	// -12KHz == "XO100000012000;" Sets TX offset frequency
 #endif
 
+#ifdef CAT_FW_CMD
+	else if ((CATcmd[0] == 'F') && (CATcmd[1] == 'W') && (CATcmd[2] == ';'))
+		Command_GetFW();
+#endif
+
 	else if ((CATcmd[0] == 'R') && (CATcmd[1] == 'C') && (CATcmd[2] == ';'))  // add
 		Command_RC();
 
@@ -5577,6 +5584,29 @@ void Command_UD()
 }
 
 #endif // CAT_EXT
+
+#ifdef CAT_FW_CMD
+void Command_GetFW() {
+#ifdef _SERIAL
+	if (!cat_active) return;
+#endif
+	char Catbuffer[32];
+	char bw[5] = "5000";
+
+	if (filt > 0) {
+		strlcpy(bw, filt_label[filt], 5);
+	}
+
+	sprintf(Catbuffer, "FW%4s;", bw);
+
+	char *c = Catbuffer;
+	while((c = strchr(c, ' '))) {
+		*c = '0';
+	}
+
+	Serial.print(Catbuffer);
+}
+#endif
 
 void Command_GETFreqA()
 {
