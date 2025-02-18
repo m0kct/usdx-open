@@ -249,6 +249,7 @@ Global variables use 1499 bytes (73%) of dynamic memory, leaving 549 bytes for l
 #define KEYER            1   // CW keyer for Iambic - NOTE: Auto CW msg sending aborts if not installed as changes dit timing. Can be removed to save memory for CAT
 #define KEY_CLICK        1   // G8RDI mod - may be removed to free memory for CAT - NEEDED FOR CW msg sending else CW TX sounds mushy & CW msg sending stops after one peep! // Reduce key clicks by envelope shaping
 #define FILTER_700HZ   1    // G8RDI mod - Moved here - Enabled shows in Menu
+//#define FILTER_600HZ   1
 
 // CW Messages: Note: If CAT is enabled, CW messages may cause a program memory overflow. KEEP_BAND_DATA can be disabled to release memory for CW at cost of losing band frequency memory.
 //#define CW_MESSAGE 1          // Transmits pre-defined CW messages on-demand (left-click menu item 4.2)
@@ -2483,7 +2484,11 @@ void dsp_tx()
 volatile uint16_t acc;
 volatile uint32_t cw_offset;
 volatile uint8_t tone_vol = 12;
+#ifdef FILTER_600HZ
 volatile uint8_t cw_tone = 1;
+#else
+volatile uint8_t cw_tone = 0;
+#endif
 const uint32_t tones[] = { F_MCU * 700ULL / 20000000, F_MCU * 600ULL / 20000000, F_MCU * 700ULL / 20000000 };  // G8RDI todo ULL to divisor?
 
 volatile int8_t p_sin = 0;     // initialized with A*sin(0) = 0
@@ -3269,8 +3274,9 @@ inline int16_t filt_var(int16_t za0)  //filters build with www.micromodeler.com
 				//case 7: zc0=(zb0-2*zb1+zb2)/32+(27*zc1-15*zc2)/16; break; //630Hz+-18Hz
 			}
 		}
-		if (cw_tone == 1)
 #endif
+#ifdef FILTER_600HZ
+		if (cw_tone == 1)
 		{
 			switch (filt) {
 				//case 4: zb0=(1*za0+2*za1+1*za2)+(90L*zb1-38L*zb2)/64; break; //600Hz+-250Hz
@@ -3308,6 +3314,7 @@ inline int16_t filt_var(int16_t za0)  //filters build with www.micromodeler.com
 				case 7: zc0=(zb0-2*zb1+zb2)/16+2*zc1-zc2+(-16L*zc1+2L*zc2)/64; break; //600Hz+-18Hz*/
 			}
 		}
+#endif
 		zc2 = zc1;
 		zc1 = zc0;
 
@@ -5164,7 +5171,9 @@ int8_t paramAction(uint8_t action, uint8_t id = ALL)  // list of parameters
 	case CWDEC:   paramAction(action, cwdec, 0x21, F("CW Decoder"), offon_label, 0, 1, false); break;
 #endif
 #ifdef FILTER_700HZ
+#ifdef FILTER_600HZ
 	case CWTONE:  if (dsp_cap) paramAction(action, cw_tone, 0x22, F("CW Tone"), cw_tone_label, 0, 1, false); break;
+#endif
 #endif
 #ifdef QCX
 	case CWOFF:   paramAction(action, cw_offset, 0x23, F("CW Off"), NULL, 300, 2000, false); break; // GW8RDI mod save buyes "CW Offset"
