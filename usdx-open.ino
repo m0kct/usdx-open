@@ -183,6 +183,10 @@ Global variables use 1499 bytes (73%) of dynamic memory, leaving 549 bytes for l
 
 // *** MEMORY LIMITATION OF ATMEGA328 *** This means you may have to mix and match functions option defines.  CAT requires considerable memory, so use only if needed.
 
+// FM and AM modulation (saves a small amount of memory if disabled)
+//#define FM_MODE 1
+#define AM_MODE 1
+
 // If your dial goes the wrong way, change SWAP_ROTARY
 #if defined(RED_CORNERS) || defined(BLACK_BRICK)
 // SWAP_ROTARY is isually required for Red Corners unless Rotary type changed, like mine!
@@ -2517,6 +2521,7 @@ void dsp_tx_cw()
 #endif
 }
 
+#ifdef AM_MODE
 void dsp_tx_am()
 { // jitter dependent things first
 	ADCSRA |= (1 << ADSC);    // start next ADC conversion (trigger ADC interrupt if ADIE flag is set)
@@ -2531,7 +2536,9 @@ void dsp_tx_am()
 	in = max(0, min(255, (in + AM_BASE)));
 	amp = in;// lut[in];
 }
+#endif
 
+#ifdef FM_MODE
 void dsp_tx_fm()
 { // jitter dependent things first
 	ADCSRA |= (1 << ADSC);    // start next ADC conversion (trigger ADC interrupt if ADIE flag is set)
@@ -2543,6 +2550,7 @@ void dsp_tx_fm()
 	int16_t df = in;
 	si5351.freq_calc_fast(df);           // calculate SI5351 registers based on frequency shift and carrier frequency
 }
+#endif
 
 #define EA(y, x, one_over_alpha)  (y) = (y) + ((x) - (y)) / (one_over_alpha); // exponental averaging [Lyons 13.33.1]
 #define MLEA(y, x, L, M)  (y)  = (y) + ((((x) - (y)) >> (L)) - (((x) - (y)) >> (M))); // multiplierless exponental averaging [Lyons 13.33.1], with alpha=1/2^L - 1/2^M
@@ -3361,6 +3369,7 @@ inline int16_t slow_dsp(int16_t i_ac2, int16_t q_ac2)
 	int16_t id = vi[0]; vi[0] = vi[1]; vi[1] = vi[2]; vi[2] = vi[3]; vi[3] = vi[4]; vi[4] = vi[5]; vi[5] = vi[6]; vi[6] = i_ac2;  // Delay to match Hilbert transform on Q branch
 	// G8RDI mod - changed name from "i" to "id" as a global virtual with same name exists, likely to confuse!
 
+#ifdef AM_MODE
 	if (mode == AM)
 	{
 		acm = -i - q;  // S-Meter
@@ -3402,7 +3411,9 @@ inline int16_t slow_dsp(int16_t i_ac2, int16_t q_ac2)
 
 		ac = result.I[1]; // the H16 part of the Long is the result*/
 	}
-	else
+	else {
+#endif
+#ifdef FM_MODE
 		if (mode == FM)
 		{
 			acm = -i - q;  // S-Meter
@@ -3426,9 +3437,15 @@ inline int16_t slow_dsp(int16_t i_ac2, int16_t q_ac2)
 		}  // needs: p.12 https://www.veron.nl/wp-content/uploads/2014/01/FmDemodulator.pdf
 		else
 		{  // USB, LSB, CW
+#endif
 			acm = -id - qh;  // SSB & CW: inverting I and Q helps dampening a feedback-loop between PWM out and ADC inputs
 			ac = acm;
+#ifdef FM_MODE
 		}
+#endif
+#ifdef AM_MODE
+	}
+#endif
 
 	static uint8_t absavg256cnt;
 	if (!(absavg256cnt--)) { _absavg256 = absavg256; absavg256 = 0; }   // Set S-Meter level
@@ -4515,8 +4532,12 @@ void switch_rxtx(uint8_t tx_enable)
       case USB:
       case LSB: func_ptr = dsp_tx; break;
 		  case CW:  func_ptr = dsp_tx_cw; break;
+#ifdef AM_MODE
 		  case AM:  func_ptr = dsp_tx_am; break;
+#endif
+#ifdef FM_MODE
 		  case FM:  func_ptr = dsp_tx_fm; break;
+#endif
 		}
 	}
 	else
@@ -4844,7 +4865,30 @@ void show_banner() {
 
 const char* vfosel_label[] = { "A", "B"/*, "Split"*/ };
 ///const char* vfosel_label[] = { "A", "B", "Split" };   // GW8RDI note - to add Split to the menu, will need a control adding to show mode, and change receive offset (int16_t rit)
-const char* mode_label[5] = { "LSB", "USB", "CW ", "FM ", "AM " };
+#ifdef AM_MODE
+#ifdef FM_MODE
+#define NUM_MODES 5
+#else
+#define NUM_MODES 4
+#endif
+#else
+#ifdef FM_MODE
+#define NUM_MODES 4
+#else
+#define NUM_MODES 3
+#endif
+#endif
+const char* mode_label[NUM_MODES] = {
+	"LSB"
+	,"USB"
+	,"CW "
+#ifdef FM_MODE
+	,"FM "
+#endif
+#ifdef AM_MODE
+	,"AM " 
+#endif
+};
 
 // Display frequency on LCD.  If RIT is enabled, displays just the receiver offset unless in TX
 inline void display_vfo(int32_t f)
