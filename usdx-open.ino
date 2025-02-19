@@ -344,7 +344,7 @@ Global variables use 1499 bytes (73%) of dynamic memory, leaving 549 bytes for l
 //#define TESTBENCH      1   // Tests RX chain by injection of sine wave, measurements results are sent over serial
 
 // G8RDI removed for memory due to CAT  
-//#define TX_DELAY       1   // Enables a delay in the actual transmission to allow relay-switching to be completed before the power is applied (see also NTX, PTX definitions below for GPIO that can switch relay/PA)
+#define TX_DELAY       1   // Enables a delay in the actual transmission to allow relay-switching to be completed before the power is applied (see also NTX, PTX definitions below for GPIO that can switch relay/PA)
 //#define NTX            11  // Enables LOW  on TX, used as PTT out to enable external PAs (a value of 11 means PB3 is used)
 #define PTX            11  // Enables HIGH on TX, used as PTT out to enable external PAs (a value of 11 means PB3 is used)
 //#define CLOCK          1   // Enables clock
