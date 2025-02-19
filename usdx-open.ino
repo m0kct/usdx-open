@@ -5118,7 +5118,7 @@ const char* agc_label[] = { "Off", "Fast", "Slow" };
 
 #define _N(a) sizeof(a)/sizeof(a[0])
 
-#define N_PARAMS 44+3  // number of (visible) parameters  // G8RDI mod +3 for added visible menu items
+#define N_PARAMS 44+5  // number of (visible) parameters  // G8RDI mod +3 for added visible menu items
 #ifdef KEEP_BAND_DATA
 #define I_PARAMS 5+9
 enum params_t { _NULL, VOLUME, MODE, FILTER, BAND, STEP, VFOSEL, RIT, AGC, NR, ATT, ATT2, SMETER, SWRMETER, CWDEC, CWTONE, CWOFF, SEMIQSK, KEY_WPM, KEY_MODE, KEY_PIN, KEY_TX, TONE_VOL, VOX, VOXGAIN, DRIVE, TXDELAY, MOX, MICGAIN, DIGI, CWINTERVAL, CWMSG1, CWMSG2, CWMSG3, CWMSG4, CWMSG5, CWMSG6, PWM_MIN, PWM_MAX, SIFXTAL, IQ_ADJ, CAT_ACTIVE, QUAD_ACTIVE, CALIB, SR, CPULOAD, PARAM_A, PARAM_B, PARAM_C, BACKL, FREQA, FREQB, MODEA, MODEB, VERS, BAND_DATA0, BAND_DATA1, BAND_DATA2, BAND_DATA3, BAND_DATA4, BAND_DATA5, BAND_DATA6, BAND_DATA7, BAND_DATA8, ALL = 0xff };
@@ -5214,7 +5214,7 @@ int8_t paramAction(uint8_t action, uint8_t id = ALL)  // list of parameters
 #ifdef MORE_MIC_GAIN
 	case MICGAIN:    paramAction(action, more_mic_gain, 0x36, F("Mic Gain +"), offon_label, 0, 1, false); break;
 #ifdef DIG_MODE
-	case DIGI:    paramAction(action, dig_mode, 0x36, F("Digital Mode"), offon_label, 0, 1, false); break;
+	case DIGI:    paramAction(action, dig_mode, 0x37, F("Digital Mode"), offon_label, 0, 1, false); break;
 #endif
 #endif
 #ifdef CW_MESSAGE
