@@ -229,6 +229,8 @@ Global variables use 1499 bytes (73%) of dynamic memory, leaving 549 bytes for l
 
 #define FAST_AGC         1   // Adds fast AGC option (good for CW) Slow mode not recommended.  Remove for CAT if memory errors.
 
+//#define BANNER_STATUS    1 // Show q and/or c in banner for quad_enabled and cat_enabled, respectively 
+
 #define CAT              1   // CAT-interface - OTHER OPTIONS, SUCH AS CW_MESSAGES and KEEP_BAND_DATA MAY TO BE DISABLED TO MAKE SPACE FOR CAT
 //#define CAT_EXT        1   // Extended CAT support: remote button and screen control commands over CAT
 //#define CAT_STREAMING    1   // Streams audio and IQ, only 8KHz b/w, & needs faster 115200 baud RS232
@@ -4841,7 +4843,11 @@ void powerDown()
 	do { wdt_enable(WDTO_15MS); for (;;); } while (0);  // soft reset by trigger watchdog timeout
 }
 
+#ifdef BANNER_STATUS
 char* szStation = (char*)MY_CALLSIGN_PADDED;  // If callsign is different length, change [5] and [6] below to match 2 spaces at end.
+#else
+char* szStation = (char*)MY_CALLSIGN;
+#endif
 
 void show_banner() {
 	lcd.setCursor(0, 0);
@@ -4850,6 +4856,7 @@ void show_banner() {
 	const char* cap_label[] = { "SSB", "DSP", "SDR" };
 	if (ssb_cap || dsp_cap) { lcd.print('-'); lcd.print(cap_label[dsp_cap]); }
 #else
+#ifdef BANNER_STATUS
 	if (quad_enabled)
 		szStation[CALLSIGN_LENGTH] = 'q';
 	else
@@ -4858,6 +4865,7 @@ void show_banner() {
 		szStation[CALLSIGN_LENGTH + 1] = 'c';
 	else
 		szStation[CALLSIGN_LENGTH + 1] = ' ';
+#endif
 
 #ifdef DEBUG_G8RDI  // DEBUG DISPLAY HEX VALUE - disable on release code
 	//sprintf(&szStation[CALLSIGN_LENGTH], "%02X", last_state);   // Last rotary encoder state
