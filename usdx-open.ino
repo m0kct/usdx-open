@@ -50,7 +50,9 @@ Global variables use 1499 bytes (73%) of dynamic memory, leaving 549 bytes for l
 */
 
 //  G8RDI Modifications log:
-#define VERSION   "4.00d"    // Fixed format "9.99z" : Additions and changes Copyright 2022-2023 GW8RDI - You can use and distribute if you maintain the copyright message, commercial use is prohibited.
+#define VERSION   "5.0.0"    // Semantic versioning
+
+// Additions and changes Copyright 2022-2023 GW8RDI - You can use and distribute if you maintain the copyright message, commercial use is prohibited.
 
 //  2022/03/04 - Added delay to show serial number at start - G8RDI mod
 //               Added band change direction based on last freq step directions. See "case BE | DC:" - GW8RDI mod
@@ -4948,7 +4950,7 @@ volatile uint8_t prev_menumode = 0;
 volatile int8_t menu = 0;  // current parameter id selected in menu
 
 #define pgm_cache_item(addr, sz) byte _item[sz]; memcpy_P(_item, addr, sz);  // copy array item from PROGMEM to SRAM
-#define get_version_id() ((VERSION[0]-'1') * 2048 + ((VERSION[2]-'0')*10 + (VERSION[3]-'0')) * 32 +  ((VERSION[4]) ? (VERSION[4] - 'a' + 1) : 0) * 1)  // converts VERSION string with (fixed) format "9.99z" into uint16_t (max. values shown here, z may be removed) 
+#define get_version_id() ((VERSION[0] - '1') * 2048 + (VERSION[2] - '0') * 64 + (VERSION[4] - '0'))
 
 //uint8_t eeprom_version; // G8RDI mod 2022/08/27 was set to unit8_t and should have been 16-bit!  Caused constant resetting when VERSION changed
 uint16_t eeprom_version;
@@ -5963,7 +5965,7 @@ void setup()
 #endif
 
 	show_banner();
-	lcd.setCursor(7, 0); lcd.print(F(" R")); lcd.print(F(VERSION)); lcd_blanks();
+	lcd.setCursor(7, 0); lcd.print(F(" V")); lcd.print(F(VERSION)); lcd_blanks();
 	delay(500);	// GW8RDI MOD - SHOW LONGER
 
 #ifdef QCX
