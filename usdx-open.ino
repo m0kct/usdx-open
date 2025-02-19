@@ -232,7 +232,8 @@ Global variables use 1499 bytes (73%) of dynamic memory, leaving 549 bytes for l
 #define CAT              1   // CAT-interface - OTHER OPTIONS, SUCH AS CW_MESSAGES and KEEP_BAND_DATA MAY TO BE DISABLED TO MAKE SPACE FOR CAT
 //#define CAT_EXT        1   // Extended CAT support: remote button and screen control commands over CAT
 //#define CAT_STREAMING    1   // Streams audio and IQ, only 8KHz b/w, & needs faster 115200 baud RS232
-//#define CAT_FAST         1   // Uses faster 115200 baud (can be changed to 57600), else 38400, 8, 1, N.
+#define CAT_FAST         1   // Uses faster 115200 baud (can be changed to 57600), else 38400, 8, 1, N.
+//#define CAT_ENABLEABLE   1 // CAT can be enabled in menu (otherwise always enabled)
 
 // If short of memory on compile and not using Spectrum display, disable CAT_XO_CMD:- Like this:-> //#define CAT_XO_CMD
 #ifdef CAT
@@ -5230,7 +5231,7 @@ int8_t paramAction(uint8_t action, uint8_t id = ALL)  // list of parameters
 #ifdef CAL_IQ
 	case CALIB:   if (dsp_cap != SDR) paramAction(action, cal_iq_dummy, 0x85, F("IQ Test/Cal."), NULL, 0, 0, false); break;
 #endif
-#ifdef CAT
+#if defined(CAT) && defined(CAT_ENABLEABLE)
 #if defined(CAT_FAST) || defined(CAT_STREAMING)
 	case CAT_ACTIVE: paramAction(action, cat_enabled, 0x86, F("CAT 115K"), offon_label, 0, 1, false);       // CAT115K2-81N
   if (cat_enabled)  // G8RDI mod 230401
