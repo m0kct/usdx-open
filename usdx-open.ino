@@ -2320,7 +2320,7 @@ volatile uint8_t amp;
 #define DIG_MODE  1 // optimization for digital modes: for super flat TX spectrum, (only down < 100Hz to cut-off DC components)
 #ifdef MORE_MIC_GAIN
 volatile uint8_t vox_thresh = (1 << 2);
-volatile uint8_t more_mic_gain = 1;
+volatile uint8_t more_mic_gain = 0;
 #ifdef DIG_MODE
 volatile uint8_t dig_mode = 0;
 #endif
@@ -5215,9 +5215,9 @@ int8_t paramAction(uint8_t action, uint8_t id = ALL)  // list of parameters
 	case MOX:     paramAction(action, mox, 0x35, F("MoX"), NULL, 0, 2, false); break;
 #endif
 #ifdef MORE_MIC_GAIN
-	case MICGAIN:    paramAction(action, more_mic_gain, 0x36, F("Mic gain +"), offon_label, 0, 1, false); break;
+	case MICGAIN:    paramAction(action, more_mic_gain, 0x36, F("Mic Gain +"), offon_label, 0, 1, false); break;
 #ifdef DIG_MODE
-	case DIGI:    paramAction(action, dig_mode, 0x36, F("Digital mode"), offon_label, 0, 1, false); break;
+	case DIGI:    paramAction(action, dig_mode, 0x36, F("Digital Mode"), offon_label, 0, 1, false); break;
 #endif
 #endif
 #ifdef CW_MESSAGE
