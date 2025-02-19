@@ -4885,21 +4885,16 @@ void show_banner() {
 
 const char* vfosel_label[] = { "A", "B"/*, "Split"*/ };
 ///const char* vfosel_label[] = { "A", "B", "Split" };   // GW8RDI note - to add Split to the menu, will need a control adding to show mode, and change receive offset (int16_t rit)
+const char* mode_label[
+	3
 #ifdef AM_MODE
+	+1
+#endif
 #ifdef FM_MODE
-#define NUM_MODES 5
-#else
-#define NUM_MODES 4
+	+1
 #endif
-#else
-#ifdef FM_MODE
-#define NUM_MODES 4
-#else
-#define NUM_MODES 3
-#endif
-#endif
-const char* mode_label[NUM_MODES] = {
-	"LSB"
+] = {
+	 "LSB"
 	,"USB"
 	,"CW "
 #ifdef FM_MODE
