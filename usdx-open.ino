@@ -5607,18 +5607,13 @@ void Command_GetFW() {
 #ifdef _SERIAL
 	if (!cat_active) return;
 #endif
-	char Catbuffer[32];
-	char bw[5] = "5000";
+	char Catbuffer[32] = "FW0000;";
 
 	if (filt > 0) {
-		strlcpy(bw, filt_label[filt], 5);
-	}
-
-	sprintf(Catbuffer, "FW%4s;", bw);
-
-	char *c = Catbuffer;
-	while((c = strchr(c, ' '))) {
-		*c = '0';
+		const char *fl = filt_label[filt];
+		strcpy(Catbuffer + 2 + (4 - strlen(fl)), fl);
+	} else {
+		Catbuffer[2] = '5';
 	}
 
 	Serial.print(Catbuffer);
