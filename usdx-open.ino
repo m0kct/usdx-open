@@ -490,7 +490,7 @@ ssb_cap=1; dsp_cap=2;
 #endif
 
 extern char __bss_end;
-static int freeMemory() { char* sp = reinterpret_cast<char*>(SP); return sp - &__bss_end; }  // see: http://www.nongnu.org/avr-libc/user-manual/malloc.html
+//static int freeMemory() { char* sp = reinterpret_cast<char*>(SP); return sp - &__bss_end; }  // see: http://www.nongnu.org/avr-libc/user-manual/malloc.html
 
 #ifdef CAT_EXT
 volatile uint8_t cat_key = 0;
@@ -2330,7 +2330,9 @@ volatile uint8_t vox_thresh = (1 << 1); //(1 << 2);
 volatile uint8_t drive = 2;   // hmm.. drive>2 impacts cpu load..why?
 
 static uint8_t cat_enabled = true;  // G8RDI mod - added
+#ifdef QUAD
 static uint8_t quad_enabled = false;  // G8RDI mod - added run time enabling
+#endif
 
 static uint8_t error_code = 0;      // G8RDI mod - added LCD error code
 
@@ -5910,7 +5912,9 @@ void setup()
 	MCUSR = 0;
 	//wdt_disable();
 	wdt_enable(WDTO_4S);  // Enable watchdog
+#if defined(DEBUG) || defined(DIAG)
 	uint32_t t0, t1;
+#endif
 #ifdef DEBUG
 	// Benchmark dsp_tx() ISR (this needs to be done in beginning of setup() otherwise when VERSION containts 5 chars, mis-alignment impact performance by a few percent)
 	func_ptr = dsp_tx;
@@ -6231,7 +6235,9 @@ void setup()
 	for (; !_digitalRead(DIT) || ((mode == CW && keyer_mode != SINGLE) && (!_digitalRead(DAH)));) { fatal(F("Check PTT/key")); }// wait until DIH/DAH/PTT is released to prevent TX on startup
 }
 
+#ifdef TUNING_DIAL
 static int32_t _step = 0;
+#endif
 //static int8_t prev_mode;
 
 void loop()
