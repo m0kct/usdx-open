@@ -341,6 +341,9 @@ Global variables use 1499 bytes (73%) of dynamic memory, leaving 549 bytes for l
 #define TX_ENABLE        1   // Disable this for RX only (no transmit), e.g. to support uSDX for kids idea: https://groups.io/g/ucx/topic/81030243#6276
 #define SEMI_QSK         1   // Just after keying the transmitter, keeps the RX muted for a short amount of time in the anticipation for continued keying
 #define RIT_ENABLE       1   // Receive-In-Transit alternates the receiving frequency with an user-defined offset to compensate for any necessary tuning needed on receive
+#ifdef RIT_ENABLE
+//#define CAT_RIT		 1   // CAT RTS command
+#endif
 #define VOX_ENABLE       1   // Voice-On-Xmit which is switching the transceiver into transmit as soon audio is detected (above noise gate level)
 #define MOX_ENABLE     1   // Monitor-On-Xmit which is audio monitoring on speaker during transmit
 
@@ -5446,17 +5449,11 @@ void analyseCATcmd()    // Supported Kenwood TS-480 protocol CAT commands
 	else if ((CATcmd[0] == 'I') && (CATcmd[1] == 'D') && (CATcmd[2] == ';'))
 		Command_ID();
 
-	else if ((CATcmd[0] == 'P') && (CATcmd[1] == 'S') && (CATcmd[2] == ';'))
+	else if ((CATcmd[0] == 'P') && (CATcmd[1] == 'S'))
 		Command_PS();
 
-	else if ((CATcmd[0] == 'P') && (CATcmd[1] == 'S') && (CATcmd[2] == '1'))
-		Command_PS1();
-
-	else if ((CATcmd[0] == 'A') && (CATcmd[1] == 'I') && (CATcmd[2] == ';'))
+	else if ((CATcmd[0] == 'A') && (CATcmd[1] == 'I'))
 		Command_AI();
-
-	else if ((CATcmd[0] == 'A') && (CATcmd[1] == 'I') && (CATcmd[2] == '0'))
-		Command_AI0();
 
 	else if ((CATcmd[0] == 'M') && (CATcmd[1] == 'D') && (CATcmd[2] == ';'))
 		Command_GetMD();
@@ -5467,17 +5464,8 @@ void analyseCATcmd()    // Supported Kenwood TS-480 protocol CAT commands
 	else if ((CATcmd[0] == 'R') && (CATcmd[1] == 'X') && (CATcmd[2] == ';'))
 		Command_RX();
 
-	else if ((CATcmd[0] == 'T') && (CATcmd[1] == 'X') && (CATcmd[2] == ';'))
-		Command_TX0();
-
-	else if ((CATcmd[0] == 'T') && (CATcmd[1] == 'X') && (CATcmd[2] == '0'))
-		Command_TX0();
-
-	else if ((CATcmd[0] == 'T') && (CATcmd[1] == 'X') && (CATcmd[2] == '1'))
-		Command_TX1();
-
-	else if ((CATcmd[0] == 'T') && (CATcmd[1] == 'X') && (CATcmd[2] == '2'))
-		Command_TX2();
+	else if ((CATcmd[0] == 'T') && (CATcmd[1] == 'X'))
+		Command_TX();
 
 	else if ((CATcmd[0] == 'A') && (CATcmd[1] == 'G') && (CATcmd[2] == '0'))  // add
 		Command_AG0();
@@ -5488,7 +5476,7 @@ void analyseCATcmd()    // Supported Kenwood TS-480 protocol CAT commands
 	else if ((CATcmd[0] == 'R') && (CATcmd[1] == 'T') && (CATcmd[2] == '1'))  // add
 		Command_RT1();
 
-#ifdef RIT_ENABLE
+#ifdef CAT_RIT
 	else if ((CATcmd[0] == 'R') && (CATcmd[1] == 'T') && (CATcmd[2] == 'S') && (CATcmd[8] == ','))  // GW8RDI mod - set RIT receiver offset
 		Command_RTS();	// “RTSxxxxx; ” Sets RIT frequency
 #endif
@@ -5786,7 +5774,7 @@ void Command_XO()		// GW8RDI mod - added set TX offset, i.e. "XO000000012000;"
 }
 #endif
 
-#ifdef RIT_ENABLE
+#ifdef CAT_RIT
 void Command_RTS()		// GW8RDI mod - added set RIT offset, i.e. "RTS30000;"
 {
 	int32_t fq = atol(CATcmd + 3);  // GW8RDI mod - CAT freq error check
@@ -5826,11 +5814,6 @@ void Command_SetMD()
 	change = true; */
 }
 
-void Command_AI0()
-{
-	Serial.print("AI0;");
-}
-
 void Command_RX()
 {
 #ifdef TX_ENABLE
@@ -5840,21 +5823,7 @@ void Command_RX()
 	Serial.print("RX0;");
 }
 
-void Command_TX0()
-{
-#ifdef TX_ENABLE
-	switch_rxtx(1);
-#endif
-}
-
-void Command_TX1()
-{
-#ifdef TX_ENABLE
-	switch_rxtx(1);
-#endif
-}
-
-void Command_TX2()
+void Command_TX()
 {
 #ifdef TX_ENABLE
 	switch_rxtx(1);
@@ -5883,9 +5852,6 @@ void Command_PS()
 	Serial.print("PS1;");
 }
 
-void Command_PS1()
-{
-}
 #endif //CAT
 
 void fatal(const __FlashStringHelper * msg, int value = 0, char unit = '\0') {
