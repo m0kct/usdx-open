@@ -4387,7 +4387,7 @@ volatile bool changedModeCAT = 0;
 volatile int32_t freq = 14000000;
 static int32_t vfo[] = { 7074000, 14074000 };
 static uint8_t vfomode[] = { LSB, USB };  // G8RDI mod was USB, USB
-enum vfo_t { VFOA = 0, VFOB = 1, SPLIT = 2 };
+enum vfo_t { VFOA = 0, VFOB = 1 };
 volatile uint8_t vfosel = VFOA;
 volatile int32_t rit = 0;	// GW8RDI mod - changed to int32_t from int16_t
 #ifdef CAT_XO_CMD
@@ -4885,8 +4885,7 @@ void show_banner() {
 	lcd.print('\x01'); lcd_blanks(); lcd_blanks();
 }
 
-const char* vfosel_label[] = { "A", "B"/*, "Split"*/ };
-///const char* vfosel_label[] = { "A", "B", "Split" };   // GW8RDI note - to add Split to the menu, will need a control adding to show mode, and change receive offset (int16_t rit)
+const char* vfosel_label[] = { "A", "B" };
 const char* mode_label[
 	3
 #ifdef AM_MODE
@@ -4912,7 +4911,7 @@ inline void display_vfo(int32_t f)
 {
 	lcd.setCursor(0, 1);
 
-	lcd.print((rit) ? ' ' : ((vfosel % 2) | ((vfosel == SPLIT) & tx)) ? '\x07' : '\x06');  // RIT, VFO A/B
+	lcd.print((rit) ? ' ' : vfosel ? '\x07' : '\x06');  // RIT, VFO A/B
 
 #ifdef CAT_XO_CMD
 	if (tx && tit != 0)	// GW8RDI mod - TX offset
@@ -5757,7 +5756,7 @@ void Command_SetMD()
   prev_mode = mode;
 	mode = CATcmd[2] - '1';
   changedModeCAT = true;
-	/*vfomode[vfosel % 2] = mode;
+	/*vfomode[vfosel] = mode;
   si5351.iqmsa = 0;  // enforce PLL reset
 	change = true; */
 }
@@ -6182,8 +6181,8 @@ void setup()
 	vox = false;  // disable VOX
 	//nr = 2; // set 2 default / 0 disable NR
 	rit = false;  // disable RIT
-	freq = vfo[vfosel % 2];
-	mode = vfomode[vfosel % 2];
+	freq = vfo[vfosel];
+	mode = vfomode[vfosel];
 
 #ifdef NR_FIR
 	if (nr > 2)
@@ -6494,8 +6493,8 @@ void loop()
 				filt = prev_filt[mode == CW];  // backup filter setting for previous mode, restore previous filter setting for current selected mode; filter settings captured for either CQ or other modes.
 #endif
 				//paramAction(UPDATE, MODE);
-				vfomode[vfosel % 2] = mode;
-				paramAction(SAVE, (vfosel % 2) ? MODEB : MODEA);  // save vfoa/b changes
+				vfomode[vfosel] = mode;
+				paramAction(SAVE, vfosel ? MODEB : MODEA);  // save vfoa/b changes
 				paramAction(SAVE, MODE);
 				paramAction(SAVE, FILTER);
 				si5351.iqmsa = 0;  // enforce PLL reset
@@ -6561,8 +6560,8 @@ void loop()
 			{
 #endif //RIT_ENABLE
         vfosel = !vfosel;
-        freq = vfo[vfosel % 2];  // todo: share code with menumode
-        mode = vfomode[vfosel % 2];
+        freq = vfo[vfosel];  // todo: share code with menumode
+        mode = vfomode[vfosel];
         // make more generic: 
         if (mode != CW) stepsize = STEP_1k; else stepsize = STEP_500;
         if (mode == CW) { filt = 4; nr = 0; }
@@ -6603,8 +6602,8 @@ void loop()
 			prev_mode = mode;
 			if (bandval > 0 && bandval <= BANDCOUNT)   // bandval 1-5/8 (0 is 6m, 9 is 160m)
 			{
-				freq_last[bandval - 1] = freq;  //vfo[vfosel % 2]    // G8RDI mod - Save freq and mode last used on this band
-				mode_last[bandval - 1] = vfomode[vfosel % 2];
+				freq_last[bandval - 1] = freq;  //vfo[vfosel]    // G8RDI mod - Save freq and mode last used on this band
+				mode_last[bandval - 1] = vfomode[vfosel];
 			}
 #ifdef DEBUG_G8RDI
 			else
@@ -6714,8 +6713,8 @@ void loop()
 				prev_filt[prev_mode == CW] = filt; filt = prev_filt[mode == CW];  // backup filter setting for previous mode, restore previous filter setting for current selected mode; filter settings captured for either CQ or other modes.
 #endif
 				//paramAction(UPDATE, MODE);
-				vfomode[vfosel % 2] = mode;
-				paramAction(SAVE, (vfosel % 2) ? MODEB : MODEA);  // save vfoa/b changes
+				vfomode[vfosel] = mode;
+				paramAction(SAVE, vfosel ? MODEB : MODEA);  // save vfoa/b changes
 				paramAction(SAVE, MODE);
 				paramAction(SAVE, FILTER);
 				si5351.iqmsa = 0;  // enforce PLL reset
@@ -6808,8 +6807,8 @@ void loop()
         filt = prev_filt[mode == CW];  // backup filter setting for previous mode, restore previous filter setting for current selected mode; filter settings captured for either CQ or other modes.
 #endif
         //paramAction(UPDATE, MODE);
-        vfomode[vfosel % 2] = mode;
-        paramAction(SAVE, (vfosel % 2) ? MODEB : MODEA);  // save vfoa/b changes
+        vfomode[vfosel] = mode;
+        paramAction(SAVE, vfosel ? MODEB : MODEA);  // save vfoa/b changes
         paramAction(SAVE, MODE);
         paramAction(SAVE, FILTER);
         si5351.iqmsa = 0;  // enforce PLL reset
@@ -6851,8 +6850,8 @@ void loop()
 			if (encoder_change) {
 				lcd.setCursor(0, 1); lcd.cursor();  // edits menu item value; make cursor visible
 				if (menu == MODE) { // post-handling Mode parameter
-					vfomode[vfosel % 2] = mode;
-					paramAction(SAVE, (vfosel % 2) ? MODEB : MODEA);  // save vfoa/b changes
+					vfomode[vfosel] = mode;
+					paramAction(SAVE, vfosel ? MODEB : MODEA);  // save vfoa/b changes
 					change = true;
 					si5351.iqmsa = 0;  // enforce PLL reset
 					// make more generic: 
@@ -6865,8 +6864,8 @@ void loop()
 				}
 				//if(menu == NR){ if(mode == CW) nr = false; }
 				if (menu == VFOSEL) {
-					freq = vfo[vfosel % 2];
-					mode = vfomode[vfosel % 2];
+					freq = vfo[vfosel];
+					mode = vfomode[vfosel];
 					// make more generic: 
 					if (mode != CW) stepsize = STEP_1k; else stepsize = STEP_500;
 					if (mode == CW) { filt = 4; nr = 0; }
@@ -7010,14 +7009,14 @@ void loop()
 			freq = band[bandval];   // Change to new band freq start
 #endif
 			//paramAction(UPDATE, MODE);
-			vfomode[vfosel % 2] = mode;
-			paramAction(SAVE, (vfosel % 2) ? MODEB : MODEA);  // save vfoa/b changes
+			vfomode[vfosel] = mode;
+			paramAction(SAVE, vfosel ? MODEB : MODEA);  // save vfoa/b changes
 			paramAction(SAVE, MODE);
 			paramAction(SAVE, FILTER);
 			si5351.iqmsa = 0;  // enforce PLL reset
 		}
 
-		vfo[vfosel % 2] = freq;
+		vfo[vfosel] = freq;
 		//save_event_time = millis() + 1000;  // schedule time to save freq (no save while tuning, hence no EEPROM wear out - G8RDI "Datasheet: Write/erase cycles: 10,000 flash/100,000 EEPROM")
 		save_event_time = millis() + 2000;  // G8RDI mod - increased to 2 seconds // schedule time to save freq (no save while tuning, hence no EEPROM wear out - G8RDI "Datasheet: Write/erase cycles: 10,000 flash/100,000 EEPROM")
 
@@ -7054,11 +7053,11 @@ void loop()
 	}
 
 	if (save_event_time && (millis() > save_event_time)) {  // save freq when time has reached schedule - reduce EEPROM writes as 10k limit to burnout (G8RDI)!
-		paramAction(SAVE, (vfosel % 2) ? FREQB : FREQA);  // save vfoa/b changes
+		paramAction(SAVE, vfosel ? FREQB : FREQA);  // save vfoa/b changes
 
 #ifdef KEEP_BAND_DATA  // G8RDI mod
-		freq_last[bandval - 1] = vfo[vfosel % 2];       // = freq;
-		mode_last[bandval - 1] = vfomode[vfosel % 2];   // = mode;
+		freq_last[bandval - 1] = vfo[vfosel];       // = freq;
+		mode_last[bandval - 1] = vfomode[vfosel];   // = mode;
 
 /* 230401
 		switch (bandval - 1)    // G8RDI mod - added Save only changed
@@ -7247,8 +7246,8 @@ int8_t updateMode() // GW8RDI mod - relocated to function
     prev_filt[prev_mode == CW] = filt; filt = prev_filt[mode == CW];  // backup filter setting for previous mode, restore previous filter setting for current selected mode; filter settings captured for either CQ or other modes.
 #endif
     //paramAction(UPDATE, MODE);
-    vfomode[vfosel % 2] = mode;
-    paramAction(SAVE, (vfosel % 2) ? MODEB : MODEA);  // save vfoa/b changes
+    vfomode[vfosel] = mode;
+    paramAction(SAVE, vfosel ? MODEB : MODEA);  // save vfoa/b changes
     paramAction(SAVE, MODE);
     paramAction(SAVE, FILTER);
     si5351.iqmsa = 0;  // enforce PLL reset
