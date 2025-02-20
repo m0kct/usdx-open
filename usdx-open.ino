@@ -50,7 +50,7 @@ Global variables use 1499 bytes (73%) of dynamic memory, leaving 549 bytes for l
 */
 
 //  G8RDI Modifications log:
-#define VERSION   "5.0.0"    // Semantic versioning
+#define VERSION   "5.1.0"    // Semantic versioning
 
 // Additions and changes Copyright 2022-2023 GW8RDI - You can use and distribute if you maintain the copyright message, commercial use is prohibited.
 
@@ -249,6 +249,11 @@ Global variables use 1499 bytes (73%) of dynamic memory, leaving 549 bytes for l
 #endif
 
 #define CAT_FW_CMD 1 // CAT FW (filter width) command (get only)
+
+#define SPLIT_OPERATION 1 // Support split operation
+#ifdef SPLIT_OPERATION
+#define CAT_SPLIT       1 // CAT commands FB, FR, FT
+#endif
 
 // Lines below NEEDED FOR CW, removed to make space for CAT
 #define KEYER            1   // CW keyer for Iambic - NOTE: Auto CW msg sending aborts if not installed as changes dit timing. Can be removed to save memory for CAT
@@ -4388,7 +4393,11 @@ volatile int32_t freq = 14000000;
 static int32_t vfo[] = { 7074000, 14074000 };
 static uint8_t vfomode[] = { LSB, USB };  // G8RDI mod was USB, USB
 enum vfo_t { VFOA = 0, VFOB = 1 };
-volatile uint8_t vfosel = VFOA;
+volatile bool vfosel = VFOA;
+volatile bool split_mode = 0;
+#ifdef SPLIT_OPERATION
+volatile bool tx_vfosel = VFOB;
+#endif
 volatile int32_t rit = 0;	// GW8RDI mod - changed to int32_t from int16_t
 #ifdef CAT_XO_CMD
 volatile int32_t tit = 0;	// GW8RDI mod - added Transit offset, used with Quantum Spectrum module
@@ -4527,12 +4536,20 @@ void switch_rxtx(uint8_t tx_enable)
 			noInterrupts();  //end of hack
 		}
 #endif //TX_DELAY
+
+#ifdef SPLIT_OPERATION
+	if (split_mode && ((tx_enable && vfosel != tx_vfosel) || (!tx_enable && vfosel == tx_vfosel))) {
+		vfosel = !vfosel;
+		freq = vfo[vfosel];
+	}
+#endif //SPLIT_OPERATION
+
 	tx = tx_enable;
 
 #ifdef CAT_XO_CMD
-	if (rit || tit)
+	if (rit || split_mode || tit)
 #else
-	if (rit)
+	if (rit || split_mode)
 #endif
 		display_vfo(freq);  // GW8RDI mod - update TX freq if RIT or TIT active on transmit, and restore in RX mode
 
@@ -5117,13 +5134,13 @@ const char* agc_label[] = { "Off", "Fast", "Slow" };
 
 #define _N(a) sizeof(a)/sizeof(a[0])
 
-#define N_PARAMS 44+5  // number of (visible) parameters  // G8RDI mod +3 for added visible menu items
+#define N_PARAMS 44+6  // number of (visible) parameters  // G8RDI mod +3 for added visible menu items
 #ifdef KEEP_BAND_DATA
 #define I_PARAMS 5+9
-enum params_t { _NULL, VOLUME, MODE, FILTER, BAND, STEP, VFOSEL, RIT, AGC, NR, ATT, ATT2, SMETER, SWRMETER, CWDEC, CWTONE, CWOFF, SEMIQSK, KEY_WPM, KEY_MODE, KEY_PIN, KEY_TX, TONE_VOL, VOX, VOXGAIN, DRIVE, TXDELAY, MOX, MICGAIN, DIGI, CWINTERVAL, CWMSG1, CWMSG2, CWMSG3, CWMSG4, CWMSG5, CWMSG6, PWM_MIN, PWM_MAX, SIFXTAL, IQ_ADJ, CAT_ACTIVE, QUAD_ACTIVE, CALIB, SR, CPULOAD, PARAM_A, PARAM_B, PARAM_C, BACKL, FREQA, FREQB, MODEA, MODEB, VERS, BAND_DATA0, BAND_DATA1, BAND_DATA2, BAND_DATA3, BAND_DATA4, BAND_DATA5, BAND_DATA6, BAND_DATA7, BAND_DATA8, ALL = 0xff };
+enum params_t { _NULL, VOLUME, MODE, FILTER, BAND, STEP, VFOSEL, SPLIT, RIT, AGC, NR, ATT, ATT2, SMETER, SWRMETER, CWDEC, CWTONE, CWOFF, SEMIQSK, KEY_WPM, KEY_MODE, KEY_PIN, KEY_TX, TONE_VOL, VOX, VOXGAIN, DRIVE, TXDELAY, MOX, MICGAIN, DIGI, CWINTERVAL, CWMSG1, CWMSG2, CWMSG3, CWMSG4, CWMSG5, CWMSG6, PWM_MIN, PWM_MAX, SIFXTAL, IQ_ADJ, CAT_ACTIVE, QUAD_ACTIVE, CALIB, SR, CPULOAD, PARAM_A, PARAM_B, PARAM_C, BACKL, FREQA, FREQB, MODEA, MODEB, VERS, BAND_DATA0, BAND_DATA1, BAND_DATA2, BAND_DATA3, BAND_DATA4, BAND_DATA5, BAND_DATA6, BAND_DATA7, BAND_DATA8, ALL = 0xff };
 #else
 #define I_PARAMS 5
-enum params_t { _NULL, VOLUME, MODE, FILTER, BAND, STEP, VFOSEL, RIT, AGC, NR, ATT, ATT2, SMETER, SWRMETER, CWDEC, CWTONE, CWOFF, SEMIQSK, KEY_WPM, KEY_MODE, KEY_PIN, KEY_TX, TONE_VOL, VOX, VOXGAIN, DRIVE, TXDELAY, MOX, MICGAIN, DIGI, CWINTERVAL, CWMSG1, CWMSG2, CWMSG3, CWMSG4, CWMSG5, CWMSG6, PWM_MIN, PWM_MAX, SIFXTAL, IQ_ADJ, CAT_ACTIVE, QUAD_ACTIVE, CALIB, SR, CPULOAD, PARAM_A, PARAM_B, PARAM_C, BACKL, FREQA, FREQB, MODEA, MODEB, VERS, ALL = 0xff };
+enum params_t { _NULL, VOLUME, MODE, FILTER, BAND, STEP, VFOSEL, SPLIT, RIT, AGC, NR, ATT, ATT2, SMETER, SWRMETER, CWDEC, CWTONE, CWOFF, SEMIQSK, KEY_WPM, KEY_MODE, KEY_PIN, KEY_TX, TONE_VOL, VOX, VOXGAIN, DRIVE, TXDELAY, MOX, MICGAIN, DIGI, CWINTERVAL, CWMSG1, CWMSG2, CWMSG3, CWMSG4, CWMSG5, CWMSG6, PWM_MIN, PWM_MAX, SIFXTAL, IQ_ADJ, CAT_ACTIVE, QUAD_ACTIVE, CALIB, SR, CPULOAD, PARAM_A, PARAM_B, PARAM_C, BACKL, FREQA, FREQB, MODEA, MODEB, VERS, ALL = 0xff };
 #endif
 #define N_ALL_PARAMS (N_PARAMS+I_PARAMS)  // number of parameters
 
@@ -5145,34 +5162,47 @@ int8_t paramAction(uint8_t action, uint8_t id = ALL)  // list of parameters
   case BAND:    paramAction(action, bandval, 0x14, F("Band"), band_label, 1, _N(band_label) - 6, false); break;  // G8RDI mod - for 5-band USDX
 #endif
 	case STEP:    paramAction(action, stepsize, 0x15, F("Tune Rate"), stepsize_label, 0, _N(stepsize_label) - 1, false); break;
-	case VFOSEL:  paramAction(action, vfosel, 0x16, F("VFO Mode"), vfosel_label, 0, _N(vfosel_label) - 1, false); break;
+	case VFOSEL:  paramAction(action, vfosel, 0x16, F("VFO Mode"), vfosel_label, 0, _N(vfosel_label) - 1, false);
+#ifdef SPLIT_OPERATION
+		if (split_mode) {
+			tx_vfosel = !vfosel;
+		}
+#endif
+		break;
+#ifdef SPLIT_OPERATION
+	case SPLIT:  paramAction(action, split_mode, 0x17, F("Split VFO"), offon_label, 0, 1, false);
+		if (split_mode) {
+			tx_vfosel = !vfosel;
+		}
+		break;
+#endif
 #ifdef RIT_ENABLE
-	case RIT:     paramAction(action, rit, 0x17, F("RIT"), offon_label, 0, 1, false); break;
+	case RIT:     paramAction(action, rit, 0x18, F("RIT"), offon_label, 0, 1, false); break;
 #endif
 #ifdef FAST_AGC
-	case AGC:     paramAction(action, agc, 0x18, F("AGC"), agc_label, 0, _N(agc_label) - 1, false); break;
+	case AGC:     paramAction(action, agc, 0x19, F("AGC"), agc_label, 0, _N(agc_label) - 1, false); break;
 #else
-	case AGC:     paramAction(action, agc, 0x18, F("AGC"), offon_label, 0, 1, false); break;
+	case AGC:     paramAction(action, agc, 0x19, F("AGC"), offon_label, 0, 1, false); break;
 #endif // FAST_AGC
 #ifdef NR_FIR
 	case NR:
 		if ((int32_t)nr + encoder_val < 3)
-			paramAction(action, nr, 0x19, F("NR"), NULL, 0, 8, false);
+			paramAction(action, nr, 0x1a, F("NR"), NULL, 0, 8, false);
 		else
-			paramAction(action, nr, 0x19, F("DSP NR"), NULL, 0, 8, false);
+			paramAction(action, nr, 0x1a, F("DSP NR"), NULL, 0, 8, false);
 #else
-	case NR:      paramAction(action, nr, 0x19, F("NR"), NULL, 0, 8, false);
+	case NR:      paramAction(action, nr, 0x1a, F("NR"), NULL, 0, 8, false);
 #endif
 #ifdef NR_FIR
 		if (nr > 2)
 			FirFilterSetup(7 + (((nr - 2) - 1) * 2), filt_val[filt], F_SAMP_RX / 8);  // GW8RDI mod
 #endif
 		break;
-	case ATT:     paramAction(action, att, 0x1A, F("Att 1"), att_label, 0, 7, false); break;
-	case ATT2:    paramAction(action, att2, 0x1B, F("Att 2"), NULL, 0, 16, false); break;
-	case SMETER:  paramAction(action, smode, 0x1C, F("S Meter"), smode_label, 0, _N(smode_label) - 1, false); break;
+	case ATT:     paramAction(action, att, 0x1B, F("Att 1"), att_label, 0, 7, false); break;
+	case ATT2:    paramAction(action, att2, 0x1C, F("Att 2"), NULL, 0, 16, false); break;
+	case SMETER:  paramAction(action, smode, 0x1D, F("S Meter"), smode_label, 0, _N(smode_label) - 1, false); break;
 #ifdef SWR_METER
-	case SWRMETER:  paramAction(action, swrmeter, 0x1D, F("SWR Meter"), swr_label, 0, _N(swr_label) - 1, false); break;
+	case SWRMETER:  paramAction(action, swrmeter, 0x1E, F("SWR Meter"), swr_label, 0, _N(swr_label) - 1, false); break;
 #endif
 #ifdef CW_DECODER
 	case CWDEC:   paramAction(action, cwdec, 0x21, F("CW Decoder"), offon_label, 0, 1, false); break;
@@ -5396,11 +5426,19 @@ void Command_UA(char en)
 
 void analyseCATcmd()    // Supported Kenwood TS-480 protocol CAT commands
 {
-	if ((CATcmd[0] == 'F') && (CATcmd[1] == 'A') && (CATcmd[2] == ';'))
-		Command_GETFreqA();
+	if ((CATcmd[0] == 'F') && (CATcmd[1] == 'A' || CATcmd[1] == 'B') && (CATcmd[2] == ';'))
+		Command_GETFreq(CATcmd[1] == 'A');
 
-	else if ((CATcmd[0] == 'F') && (CATcmd[1] == 'A') && (CATcmd[13] == ';'))
-		Command_SETFreqA();
+	else if ((CATcmd[0] == 'F') && (CATcmd[1] == 'A' || CATcmd[1] == 'B') && (CATcmd[13] == ';'))
+		Command_SETFreq(CATcmd[1] == 'A');
+
+#ifdef CAT_SPLIT
+	else if ((CATcmd[0] == 'F') && (CATcmd[1] == 'R') && (CATcmd[2] == '0' || CATcmd[2] == '1') && (CATcmd[3] == ';'))
+		Command_FR(CATcmd[2] == '0');
+
+	else if ((CATcmd[0] == 'F') && (CATcmd[1] == 'T') && (CATcmd[2] == '0' || CATcmd[2] == '1') && (CATcmd[3] == ';'))
+		Command_FT(CATcmd[2] == '0');
+#endif
 
 	else if ((CATcmd[0] == 'I') && (CATcmd[1] == 'F') && (CATcmd[2] == ';'))
 		Command_IF();
@@ -5619,7 +5657,7 @@ void Command_GetFW() {
 }
 #endif
 
-void Command_GETFreqA()
+void Command_GETFreq(bool vfoid)
 {
 #ifdef _SERIAL
 	if (!cat_active) return;
@@ -5628,7 +5666,11 @@ void Command_GETFreqA()
 	unsigned int g, m, k, h;
 	uint32_t tf;
 
+#ifdef CAT_SPLIT
+	tf = vfo[vfoid];
+#else
 	tf = freq;
+#endif
 	g = (unsigned int)(tf / 1000000000lu);
 	tf -= g * 1000000000lu;
 	m = (unsigned int)(tf / 1000000lu);
@@ -5637,13 +5679,13 @@ void Command_GETFreqA()
 	tf -= k * 1000lu;
 	h = (unsigned int)tf;
 
-	sprintf(Catbuffer, "FA%02u%03u", g, m);
+	sprintf(Catbuffer, "F%c%02u%03u", vfoid ? 'B' : 'A', g, m);
 	Serial.print(Catbuffer);
 	sprintf(Catbuffer, "%03u%03u;", k, h);
 	Serial.print(Catbuffer);
 }
 
-void Command_SETFreqA()
+void Command_SETFreq(bool vfoid)
 {
 	/*	char Catbuffer[16];   // GW8RDI mod - unnecessary to double buffer
 		strncpy(Catbuffer, CATcmd + 2, 11);
@@ -5653,10 +5695,32 @@ void Command_SETFreqA()
 	uint32_t fq = (uint32_t)atol(CATcmd + 2);  // "FA00024000000;" GW8RDI mod - CAT freq error check
 	if (fq >= 1500000 && fq <= 60000000)   // Ignore corrupted freq data
 	{
+#ifdef CAT_SPLIT
+		vfo[vfoid] = fq;
+#else
 		freq = fq;
+#endif
 		change = true;
 	}
 }
+
+#ifdef CAT_SPLIT
+void Command_FR(bool vfoid)
+{
+	vfosel = vfoid;
+	split_mode = (tx_vfosel == vfosel);
+
+	change = true;
+}
+
+void Command_FT(bool vfoid)
+{
+	tx_vfosel = vfoid;
+	split_mode = (tx_vfosel == vfosel);
+
+	change = true;
+}
+#endif
 
 void Command_IF()
 {
@@ -5683,7 +5747,8 @@ void Command_IF()
 	sprintf(Catbuffer, "0000");
 	Serial.print(Catbuffer);
 	Serial.print(mode + 1);
-	sprintf(Catbuffer, "0000000;");
+	Serial.print(split_mode);
+	sprintf(Catbuffer, "000000;");
 	Serial.print(Catbuffer);
 }
 
