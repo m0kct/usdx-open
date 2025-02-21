@@ -189,6 +189,9 @@ Global variables use 1499 bytes (73%) of dynamic memory, leaving 549 bytes for l
 //#define FM_MODE 1
 #define AM_MODE 1
 
+
+//#define POWER_DOWN 1    // Power down when volume set to <= 0
+
 // If your dial goes the wrong way, change SWAP_ROTARY
 #if defined(RED_CORNERS) || defined(BLACK_BRICK)
 // SWAP_ROTARY is isually required for Red Corners unless Rotary type changed, like mine!
@@ -2633,7 +2636,7 @@ int cw_tx(char ch) {    // *** CW Transmit msg ***
 
 int cw_tx(char* msg) {
 	for (uint8_t i = 0; msg[i]; i++) {  // loop over message
-		lcd.setCursor(0, 0); lcd.print(i); lcd.print("    ");
+		lcd.setCursor(0, 0); lcd.print(i); lcd.print(F("    "));
 		if (cw_tx(msg[i]))  // Sent morse char
 			return 1;
 	}
@@ -4451,7 +4454,7 @@ int16_t smeter(int16_t ref = 0)
 #define R_VSS   1000 // for 1000kOhm from VSS to PC3 (and 10kOhm to GND). Correct this value until VSS is matching
 			uint8_t vss10 = (uint32_t)analogSafeRead(BUTTONS, true) * (R_VSS + 10) * 11 / (10 * 1024);   // use for a 1.1V ADC range VSS measurement
 			//uint8_t vss10 = (uint32_t)analogSafeRead(BUTTONS, false) * (R_VSS + 10) * 50 / (10 * 1024);  // use for a 5V ADC range VSS measurement (use for 100k value of R_VSS)
-			lcd.setCursor(10, 0); lcd.print(vss10 / 10); lcd.print('.'); lcd.print(vss10 % 10); lcd.print("V ");
+			lcd.setCursor(10, 0); lcd.print(vss10 / 10); lcd.print('.'); lcd.print(vss10 % 10); lcd.print(F("V "));
 		}
 #endif //VSS_METER
 #ifdef CLOCK
@@ -4460,7 +4463,7 @@ int16_t smeter(int16_t ref = 0)
 			uint8_t h = (_s / 3600) % 24;
 			uint8_t m = (_s / 60) % 60;
 			uint8_t s = (_s) % 60;
-			lcd.setCursor(8, 0); lcd.print(h / 10); lcd.print(h % 10); lcd.print(':'); lcd.print(m / 10); lcd.print(m % 10); lcd.print(':'); lcd.print(s / 10); lcd.print(s % 10); lcd.print("  ");
+			lcd.setCursor(8, 0); lcd.print(h / 10); lcd.print(h % 10); lcd.print(':'); lcd.print(m / 10); lcd.print(m % 10); lcd.print(':'); lcd.print(s / 10); lcd.print(s % 10); lcd.print(F("  "));
 		}
 #endif //CLOCK
 		stepsize_showcursor();
@@ -4704,7 +4707,7 @@ void switch_rxtx(uint8_t tx_enable)
 		si5351.freq_calc_fast(0); si5351.SendPLLRegisterBulk();  // restore original PLL RX frequency
 #endif //RIT_ENABLE
 #ifdef SWR_METER
-		if (swrmeter > 0) { show_banner(); lcd.print("                "); }
+		if (swrmeter > 0) { show_banner(); lcd.print(F("                ")); }
 #endif
 		lcd.setCursor(15, 1); lcd.print((vox) ? 'V' : 'R');
 #ifdef _SERIAL
@@ -4733,17 +4736,17 @@ void calibrate_iq()
 	si5351.freqb(freq + 700); delay(100);
 	dbc = smeter();
 	si5351.freqb(freq - 700); delay(100);
-	lcd.setCursor(0, 1); lcd.print("I-Q bal. 700Hz"); lcd_blanks();
+	lcd.setCursor(0, 1); lcd.print(F("I-Q bal. 700Hz")); lcd_blanks();
 	for (; !_digitalRead(BUTTONS);) { wdt_reset(); smeter(dbc); } for (; _digitalRead(BUTTONS);) wdt_reset();
 	si5351.freqb(freq + 600); delay(100);
 	dbc = smeter();
 	si5351.freqb(freq - 600); delay(100);
-	lcd.setCursor(0, 1); lcd.print("Phase Lo 600Hz"); lcd_blanks();
+	lcd.setCursor(0, 1); lcd.print(F("Phase Lo 600Hz")); lcd_blanks();
 	for (; !_digitalRead(BUTTONS);) { wdt_reset(); smeter(dbc); } for (; _digitalRead(BUTTONS);) wdt_reset();
 	si5351.freqb(freq + 800); delay(100);
 	dbc = smeter();
 	si5351.freqb(freq - 800); delay(100);
-	lcd.setCursor(0, 1); lcd.print("Phase Hi 800Hz"); lcd_blanks();
+	lcd.setCursor(0, 1); lcd.print(F("Phase Hi 800Hz")); lcd_blanks();
 	for (; !_digitalRead(BUTTONS);) { wdt_reset(); smeter(dbc); } for (; _digitalRead(BUTTONS);) wdt_reset();
 
 	lcd.setCursor(9, 0); lcd_blanks();  // cleanup dbmeter
@@ -4819,6 +4822,7 @@ void stepsize_change(int8_t val)
 	stepsize_showcursor();
 }
 
+#ifdef POWER_DOWN
 void powerDown()
 { // Reduces power from 110mA to 70mA (back-light on) or 30mA (back-light off), remaining current is probably opamp quiescent current
 	lcd.setCursor(0, 1); lcd.print(F("Power-off 73 :-)")); lcd_blanks();
@@ -4867,6 +4871,7 @@ void powerDown()
 	//void(* reset)(void) = 0; reset();   // soft reset by calling reset vector (does not reset registers to defaults)
 	do { wdt_enable(WDTO_15MS); for (;;); } while (0);  // soft reset by trigger watchdog timeout
 }
+#endif
 
 #ifdef BANNER_STATUS
 char* szStation = (char*)MY_CALLSIGN_PADDED;  // If callsign is different length, change [5] and [6] below to match 2 spaces at end.
@@ -4905,7 +4910,7 @@ void show_banner() {
 #endif //QCX
 	lcd.print('\x01'); lcd_blanks(); lcd_blanks();
 #ifdef SPLIT_IN_BANNER
-	lcd.print(' '); lcd.print(split_mode ? 'S' : ' ');
+	lcd.print(split_mode ? F(" S") : F("  "));
 #endif
 }
 
@@ -5436,12 +5441,12 @@ void Command_UA(char en)
 
 void analyseCATcmd()    // Supported Kenwood TS-480 protocol CAT commands
 {
-	if ((CATcmd[0] == 'F') && (CATcmd[1] == 'A' || CATcmd[1] == 'B') && (CATcmd[2] == ';'))
-		Command_GETFreq(CATcmd[1] == 'B');
-
-	else if ((CATcmd[0] == 'F') && (CATcmd[1] == 'A' || CATcmd[1] == 'B') && (CATcmd[13] == ';'))
-		Command_SETFreq(CATcmd[1] == 'B');
-
+	if ((CATcmd[0] == 'F') && (CATcmd[1] == 'A' || CATcmd[1] == 'B')) {
+		if (CATcmd[2] == ';')
+			Command_GETFreq(CATcmd[1] == 'B');
+		else
+			Command_SETFreq(CATcmd[1] == 'B');
+	}
 #ifdef CAT_SPLIT
 	else if ((CATcmd[0] == 'F') && (CATcmd[1] == 'R') && (CATcmd[2] == '0' || CATcmd[2] == '1') && (CATcmd[3] == ';'))
 		Command_FR(CATcmd[2] == '1');
@@ -5462,12 +5467,12 @@ void analyseCATcmd()    // Supported Kenwood TS-480 protocol CAT commands
 	else if ((CATcmd[0] == 'A') && (CATcmd[1] == 'I'))
 		Command_AI();
 
-	else if ((CATcmd[0] == 'M') && (CATcmd[1] == 'D') && (CATcmd[2] == ';'))
-		Command_GetMD();
-
-	else if ((CATcmd[0] == 'M') && (CATcmd[1] == 'D') && (CATcmd[3] == ';'))
-		Command_SetMD();
-
+	else if ((CATcmd[0] == 'M') && (CATcmd[1] == 'D')) {
+		if (CATcmd[2] == ';')
+			Command_GetMD();
+		else if (CATcmd[3] == ';')
+			Command_SetMD(CATcmd[2] - '1');
+	}
 	else if ((CATcmd[0] == 'R') && (CATcmd[1] == 'X') && (CATcmd[2] == ';'))
 		Command_RX();
 
@@ -5820,16 +5825,16 @@ void Command_GetMD()
 	Serial.print(';');
 }
 
-void Command_SetMD()
+void Command_SetMD(uint8_t new_mode)
 {
 	prev_mode = mode;
-	mode = CATcmd[2] - '1';
+	mode = new_mode;
 #ifdef CAT_SPLIT
 	vfomode[VFOA] = mode;
 	vfomode[VFOB] = mode;
 #endif
 	changedModeCAT = true;
-	/*vfomode[vfosel] = mode;
+	/*vfomode[vfosel] = newmode;
 	  si5351.iqmsa = 0;  // enforce PLL reset
 	  change = true; */
 }
@@ -6723,7 +6728,13 @@ void loop()
 				wdt_reset();
 				if (encoder_val) {
 					paramAction(UPDATE, VOLUME);
-					if (volume < 0) { volume = 10; paramAction(SAVE, VOLUME); powerDown(); }  // powerDown when volume < 0
+					if (volume < 0) {
+#ifdef POWER_DOWN
+						volume = 10; paramAction(SAVE, VOLUME); powerDown();  // powerDown when volume < 0
+#else
+						volume = 0;
+#endif
+					}
 					paramAction(SAVE, VOLUME);
 				}
 			}
