@@ -573,6 +573,7 @@ static int8_t prev_mode;
 volatile uint8_t cat_active = 0;  // Run-time set when serial data being processed to keep shared LCD pins controlled
 volatile uint32_t rxend_event = 0;
 volatile uint8_t vox = 0;
+volatile bool lcd_block = 1;
 
 #include <avr/sleep.h>
 #include <avr/wdt.h>
@@ -741,9 +742,24 @@ public:  // LCD1602 display in 4-bit mode, RS is pull-up and kept low when idle 
 
 	void pre() {
 #ifdef _SERIAL
-		if (!vox) if (cat_active) { Serial.flush(); for (; millis() < rxend_event;)wdt_reset(); PORTC |= 1 << 2; DDRC |= 1 << 2; } UCSR0B &= ~((1 << RXEN0) | (1 << TXEN0)); // Complete serial TX and RX; mask PD1 LCD data-exchange by pulling-up TXD via PC2 HIGH; enable PD0/PD1, disable serial port
+		// Complete serial TX and RX; mask PD1 LCD data-exchange by pulling-up TXD via PC2 HIGH; enable PD0/PD1, disable serial port
+		if (!vox && cat_active) {
+			Serial.flush();
+
+			if (lcd_block) {
+				for (; millis() < rxend_event;) {
+					wdt_reset();
+				}
+			}
+
+			PORTC |= 1 << 2;
+			DDRC |= 1 << 2;
+		}
+		UCSR0B &= ~((1 << RXEN0) | (1 << TXEN0));
 #endif
-		noInterrupts();  // ***!!!*** do not allow LCD tranfer to be interrupted, to prevent backlight to lighten-up
+		if (lcd_block) {
+			noInterrupts();  // ***!!!*** do not allow LCD tranfer to be interrupted, to prevent backlight to lighten-up
+		}
 	}
 	void post() {
 		///if(backlight) PORTD |= 0x08; else PORTD &= ~0x08;   // Backlight control
@@ -752,9 +768,17 @@ public:  // LCD1602 display in 4-bit mode, RS is pull-up and kept low when idle 
 		else
 			PORTD &= ~BACKLIGHT_PIN;   // Backlight control - G8RDI MOD
 #ifdef _SERIAL
-		UCSR0B |= (1 << RXEN0) | (1 << TXEN0); if (!vox) if (cat_active) { PORTC &= ~(1 << 2); DDRC &= ~(1 << 2); } // Enable serial port, disable PD0, PD1; PC2 LOW to prevent CAT TX disruption via MIC input
+		// Enable serial port, disable PD0, PD1; PC2 LOW to prevent CAT TX disruption via MIC input
+		UCSR0B |= (1 << RXEN0) | (1 << TXEN0);
+
+		if (!vox && cat_active) {
+			PORTC &= ~(1 << 2);
+			DDRC &= ~(1 << 2);
+		}
 #endif
-		interrupts();
+		if (lcd_block) {
+			interrupts();
+		}
 	}
 #ifdef RS_HIGH_ON_IDLE
 	void cmd(uint8_t b) {
@@ -4537,28 +4561,35 @@ void switch_rxtx(uint8_t tx_enable)
 #ifdef PTX
 			digitalWrite(PTX, HIGH);  // TX (enable TX)
 #endif //PTX
-			lcd.setCursor(15, 1); lcd.print('D');  // note that this enables interrupts again.
+			lcd_block = 0;
+			lcd.setCursor(15, 1); lcd.print('D');
+			lcd_block = 1;
 			interrupts();    //hack.. to allow delay()
 			delay(F_MCU / 16000000 * txdelay);
 			noInterrupts();  //end of hack
 		}
 #endif //TX_DELAY
 
-	tx = tx_enable;
-
 #ifdef SPLIT_OPERATION
 	if (split_mode) {
-		vfosel = tx ? tx_vfosel : !tx_vfosel;
+		vfosel = tx_enable ? tx_vfosel : !tx_vfosel;
 		freq = vfo[vfosel];
+		mode = vfomode[vfosel];
 	}
 #endif //SPLIT_OPERATION
+
+	tx = tx_enable;
 
 #ifdef CAT_XO_CMD
 	if (rit || split_mode || tit)
 #else
 	if (rit || split_mode)
 #endif
+	{
+		lcd_block = 0;
 		display_vfo(freq);  // GW8RDI mod - update TX freq if RIT or TIT active on transmit, and restore in RX mode
+		lcd_block = 1;
+	}
 
 	if (tx_enable)
 	{
@@ -5698,7 +5729,11 @@ void Command_SETFreq(bool vfoid)
 	if (fq >= 1500000 && fq <= 60000000)   // Ignore corrupted freq data
 	{
 #ifdef CAT_SPLIT
-		vfo[vfoid] = fq;
+		if (vfoid == vfosel) {
+			freq = fq;
+		} else {
+			vfo[vfoid] = fq;
+		}
 #else
 		freq = fq;
 #endif
@@ -5710,10 +5745,10 @@ void Command_SETFreq(bool vfoid)
 void Command_FR(bool vfoid)
 {
 	vfosel = vfoid;
-	split_mode = (tx_vfosel == vfosel);
-	if (split_mode) {
-		rit = 0;
-	}
+	freq = vfo[vfosel];
+	mode = vfomode[vfosel];
+
+	split_mode = (tx_vfosel != vfosel);
 
 	change = true;
 }
@@ -5721,12 +5756,8 @@ void Command_FR(bool vfoid)
 void Command_FT(bool vfoid)
 {
 	tx_vfosel = vfoid;
-	split_mode = (tx_vfosel == vfosel);
-	if (split_mode) {
-		rit = 0;
-	}
 
-	change = true;
+	split_mode = (tx_vfosel != vfosel);
 }
 #endif
 
@@ -5750,11 +5781,12 @@ void Command_IF()
 
 	sprintf(Catbuffer, "IF%02u%03u%03u%03u", g, m, k, h);
 	Serial.print(Catbuffer);
-	Serial.print("00000+000000");
-	Serial.print("0000");
+	Serial.print("00000+0000000000");
 	Serial.print(mode + 1);
+	Serial.print(vfosel);
+	Serial.print('0');
 	Serial.print(split_mode);
-	Serial.print("000000;");
+	Serial.print("0000;");
 }
 
 void Command_AI()
