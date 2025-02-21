@@ -5191,7 +5191,9 @@ int8_t paramAction(uint8_t action, uint8_t id = ALL)  // list of parameters
 #endif
 #ifdef RIT_ENABLE
 	case RIT:     paramAction(action, rit, 0x18, F("RIT"), offon_label, 0, 1, false);
-		split_mode = 0;
+		if (rit) {
+			split_mode = 0;
+		}
 		break;
 #endif
 #ifdef FAST_AGC
@@ -5796,7 +5798,7 @@ void Command_RTS()		// GW8RDI mod - added set RIT offset, i.e. "RTS30000;"
 	if (fq >= -99999 && fq <= 99999)   // Ignore corrupted freq data
 	{
 		rit = fq;
-		if (!rit) {
+		if (rit) {
 			split_mode = 0;
 		}
 		change = true;
