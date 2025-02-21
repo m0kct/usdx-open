@@ -253,6 +253,7 @@ Global variables use 1499 bytes (73%) of dynamic memory, leaving 549 bytes for l
 #define SPLIT_OPERATION 1 // Support split operation
 #ifdef SPLIT_OPERATION
 #define CAT_SPLIT       1 // CAT commands FB, FR, FT
+#define SPLIT_IN_BANNER 1 // Show 'S' for split mode in banner
 #endif
 
 // Lines below NEEDED FOR CW, removed to make space for CAT
@@ -4399,7 +4400,7 @@ enum vfo_t { VFOA = 0, VFOB = 1 };
 volatile bool vfosel = VFOA;
 volatile bool split_mode = 0;
 #ifdef SPLIT_OPERATION
-volatile bool tx_vfosel = VFOB;
+volatile bool tx_vfosel = VFOA;
 #endif
 volatile int32_t rit = 0;	// GW8RDI mod - changed to int32_t from int16_t
 #ifdef CAT_XO_CMD
@@ -4540,14 +4541,14 @@ void switch_rxtx(uint8_t tx_enable)
 		}
 #endif //TX_DELAY
 
+	tx = tx_enable;
+
 #ifdef SPLIT_OPERATION
-	if (split_mode && ((tx_enable && vfosel != tx_vfosel) || (!tx_enable && vfosel == tx_vfosel))) {
-		vfosel = !vfosel;
+	if (split_mode) {
+		vfosel = tx ? tx_vfosel : !tx_vfosel;
 		freq = vfo[vfosel];
 	}
 #endif //SPLIT_OPERATION
-
-	tx = tx_enable;
 
 #ifdef CAT_XO_CMD
 	if (rit || split_mode || tit)
@@ -4903,6 +4904,9 @@ void show_banner() {
 	lcd.print(szStation);   // "uSDX"
 #endif //QCX
 	lcd.print('\x01'); lcd_blanks(); lcd_blanks();
+#ifdef SPLIT_IN_BANNER
+	lcd.print(' '); lcd.print(split_mode ? 'S' : ' ');
+#endif
 }
 
 const char* vfosel_label[] = { "A", "B" };
@@ -5165,7 +5169,7 @@ int8_t paramAction(uint8_t action, uint8_t id = ALL)  // list of parameters
   case BAND:    paramAction(action, bandval, 0x14, F("Band"), band_label, 1, _N(band_label) - 6, false); break;  // G8RDI mod - for 5-band USDX
 #endif
 	case STEP:    paramAction(action, stepsize, 0x15, F("Tune Rate"), stepsize_label, 0, _N(stepsize_label) - 1, false); break;
-	case VFOSEL:  paramAction(action, vfosel, 0x16, F("VFO Mode"), vfosel_label, 0, _N(vfosel_label) - 1, false);
+	case VFOSEL:  paramAction(action, vfosel, 0x16, F("VFO"), vfosel_label, 0, _N(vfosel_label) - 1, false);
 #ifdef SPLIT_OPERATION
 		if (split_mode) {
 			tx_vfosel = !vfosel;
@@ -5176,11 +5180,14 @@ int8_t paramAction(uint8_t action, uint8_t id = ALL)  // list of parameters
 	case SPLIT:  paramAction(action, split_mode, 0x17, F("Split VFO"), offon_label, 0, 1, false);
 		if (split_mode) {
 			tx_vfosel = !vfosel;
+			rit = 0;
 		}
 		break;
 #endif
 #ifdef RIT_ENABLE
-	case RIT:     paramAction(action, rit, 0x18, F("RIT"), offon_label, 0, 1, false); break;
+	case RIT:     paramAction(action, rit, 0x18, F("RIT"), offon_label, 0, 1, false);
+		split_mode = 0;
+		break;
 #endif
 #ifdef FAST_AGC
 	case AGC:     paramAction(action, agc, 0x19, F("AGC"), agc_label, 0, _N(agc_label) - 1, false); break;
@@ -5430,17 +5437,17 @@ void Command_UA(char en)
 void analyseCATcmd()    // Supported Kenwood TS-480 protocol CAT commands
 {
 	if ((CATcmd[0] == 'F') && (CATcmd[1] == 'A' || CATcmd[1] == 'B') && (CATcmd[2] == ';'))
-		Command_GETFreq(CATcmd[1] == 'A');
+		Command_GETFreq(CATcmd[1] == 'B');
 
 	else if ((CATcmd[0] == 'F') && (CATcmd[1] == 'A' || CATcmd[1] == 'B') && (CATcmd[13] == ';'))
-		Command_SETFreq(CATcmd[1] == 'A');
+		Command_SETFreq(CATcmd[1] == 'B');
 
 #ifdef CAT_SPLIT
 	else if ((CATcmd[0] == 'F') && (CATcmd[1] == 'R') && (CATcmd[2] == '0' || CATcmd[2] == '1') && (CATcmd[3] == ';'))
-		Command_FR(CATcmd[2] == '0');
+		Command_FR(CATcmd[2] == '1');
 
 	else if ((CATcmd[0] == 'F') && (CATcmd[1] == 'T') && (CATcmd[2] == '0' || CATcmd[2] == '1') && (CATcmd[3] == ';'))
-		Command_FT(CATcmd[2] == '0');
+		Command_FT(CATcmd[2] == '1');
 #endif
 
 	else if ((CATcmd[0] == 'I') && (CATcmd[1] == 'F') && (CATcmd[2] == ';'))
@@ -5697,6 +5704,9 @@ void Command_FR(bool vfoid)
 {
 	vfosel = vfoid;
 	split_mode = (tx_vfosel == vfosel);
+	if (split_mode) {
+		rit = 0;
+	}
 
 	change = true;
 }
@@ -5705,6 +5715,9 @@ void Command_FT(bool vfoid)
 {
 	tx_vfosel = vfoid;
 	split_mode = (tx_vfosel == vfosel);
+	if (split_mode) {
+		rit = 0;
+	}
 
 	change = true;
 }
@@ -5781,6 +5794,9 @@ void Command_RTS()		// GW8RDI mod - added set RIT offset, i.e. "RTS30000;"
 	if (fq >= -99999 && fq <= 99999)   // Ignore corrupted freq data
 	{
 		rit = fq;
+		if (!rit) {
+			split_mode = 0;
+		}
 		change = true;
 	}
 }
@@ -5806,12 +5822,16 @@ void Command_GetMD()
 
 void Command_SetMD()
 {
-  prev_mode = mode;
+	prev_mode = mode;
 	mode = CATcmd[2] - '1';
-  changedModeCAT = true;
+#ifdef CAT_SPLIT
+	vfomode[VFOA] = mode;
+	vfomode[VFOB] = mode;
+#endif
+	changedModeCAT = true;
 	/*vfomode[vfosel] = mode;
-  si5351.iqmsa = 0;  // enforce PLL reset
-	change = true; */
+	  si5351.iqmsa = 0;  // enforce PLL reset
+	  change = true; */
 }
 
 void Command_RX()
