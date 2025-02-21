@@ -5625,7 +5625,7 @@ void Command_UK(char k1, char k2)
 	cat_key = ((k1 - '0') << 4) | (k2 - '0');
 	if (cat_key & 0x40) { encoder_val--; cat_key &= 0x3f; }
 	if (cat_key & 0x80) { encoder_val++; cat_key &= 0x3f; }
-	char Catbuffer[16];
+	char Catbuffer[8];
 	sprintf(Catbuffer, "UK%c%c;", k1, k2);
 	Serial.print(Catbuffer);
 }
@@ -5644,7 +5644,7 @@ void Command_GetFW() {
 #ifdef _SERIAL
 	if (!cat_active) return;
 #endif
-	char Catbuffer[32] = "FW0000;";
+	char Catbuffer[8] = "FW0000;";
 
 	if (filt > 0) {
 		const char *fl = filt_label[filt];
@@ -5748,14 +5748,11 @@ void Command_IF()
 
 	sprintf(Catbuffer, "IF%02u%03u%03u%03u", g, m, k, h);
 	Serial.print(Catbuffer);
-	sprintf(Catbuffer, "00000+000000");
-	Serial.print(Catbuffer);
-	sprintf(Catbuffer, "0000");
-	Serial.print(Catbuffer);
+	Serial.print("00000+000000");
+	Serial.print("0000");
 	Serial.print(mode + 1);
 	Serial.print(split_mode);
-	sprintf(Catbuffer, "000000;");
-	Serial.print(Catbuffer);
+	Serial.print("000000;");
 }
 
 void Command_AI()
