@@ -2355,15 +2355,14 @@ volatile uint8_t amp;
 #define MORE_MIC_GAIN   1       // 1.02w adds more microphone gain, improving overall SSB quality (when speaking further away from microphone)
 #define DIG_MODE  1 // optimization for digital modes: for super flat TX spectrum, (only down < 100Hz to cut-off DC components)
 #ifdef MORE_MIC_GAIN
-volatile uint8_t vox_thresh = (1 << 2);
 volatile uint8_t more_mic_gain = 0;
 #ifdef DIG_MODE
 volatile uint8_t dig_mode = 0;
 #endif
 #else
-volatile uint8_t vox_thresh = (1 << 1); //(1 << 2);
+volatile uint8_t vox_thresh = 1;
 #endif
-volatile uint8_t drive = 2;   // hmm.. drive>2 impacts cpu load..why?
+volatile uint8_t drive = 7;   // hmm.. drive>2 impacts cpu load..why?
 
 static uint8_t cat_enabled = true;  // G8RDI mod - added
 #ifdef QUAD
@@ -2526,7 +2525,7 @@ void dsp_tx()
 
 volatile uint16_t acc;
 volatile uint32_t cw_offset;
-volatile uint8_t tone_vol = 12;
+volatile uint8_t tone_vol = 8;
 #ifdef FILTER_600HZ
 volatile uint8_t cw_tone = 1;
 #else
@@ -2874,13 +2873,13 @@ void dec2()
 #define F_ADC_CONV (192307/2)  //was 192307/1, but as noted this produces clicks in audio stream. Slower ADC clock cures this (but is a problem for VOX when sampling mic-input simulatanously).
 
 #ifdef FAST_AGC
-volatile uint8_t agc = 2;
-#else
 volatile uint8_t agc = 1;
+#else
+volatile uint8_t agc = 2;
 #endif
-volatile uint8_t nr = 2;    // G8RDI mod
+volatile uint8_t nr = 0;
 volatile uint8_t att = 0;
-volatile uint8_t att2 = 2;  // Minimum att2 increased, to prevent numeric overflow on strong signals
+volatile uint8_t att2 = 1;  // Minimum att2 increased, to prevent numeric overflow on strong signals
 volatile uint8_t _init = 0;
 
 // Old AGC algorithm which only increases gain, but does not decrease it for very strong signals.
@@ -4422,7 +4421,7 @@ volatile bool changedMode = 0;
 volatile bool changedModeCAT = 0;
 volatile int32_t freq = 14000000;
 static int32_t vfo[] = { 7074000, 14074000 };
-static uint8_t vfomode[] = { LSB, USB };  // G8RDI mod was USB, USB
+static uint8_t vfomode[] = { USB, USB };
 enum vfo_t { VFOA = 0, VFOB = 1 };
 volatile bool vfosel = VFOA;
 #ifdef SPLIT_OPERATION
@@ -4825,8 +4824,8 @@ uint32_t band[N_BANDS] = { /*472000,*/ 1840000, 3573000, 5357000, 7074000, 10136
 
 enum step_t { STEP_10M, STEP_1M, STEP_500k, STEP_100k, STEP_10k, STEP_1k, STEP_500, STEP_100, STEP_10, STEP_1 };
 uint32_t stepsizes[10] = { 10000000, 1000000, 500000, 100000, 10000, 1000, 500, 100, 10, 1 };
-volatile uint8_t stepsize = STEP_1k;
-uint8_t prev_stepsize[] = { STEP_1k, STEP_500 }; //default stepsize for resp. SSB, CW
+volatile uint8_t stepsize = STEP_500;
+uint8_t prev_stepsize[] = { STEP_500, STEP_500 }; //default stepsize for resp. SSB, CW
 
 
 #ifdef KEEP_BAND_DATA  // G8RDI mod - Up to 9 bands are supported of 11. To increase change code.
