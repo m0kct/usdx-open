@@ -4425,8 +4425,8 @@ static int32_t vfo[] = { 7074000, 14074000 };
 static uint8_t vfomode[] = { LSB, USB };  // G8RDI mod was USB, USB
 enum vfo_t { VFOA = 0, VFOB = 1 };
 volatile bool vfosel = VFOA;
-volatile bool split_mode = 0;
 #ifdef SPLIT_OPERATION
+volatile bool rx_vfosel = VFOA;
 volatile bool tx_vfosel = VFOA;
 #endif
 volatile int32_t rit = 0;	// GW8RDI mod - changed to int32_t from int16_t
@@ -4573,20 +4573,31 @@ void switch_rxtx(uint8_t tx_enable)
 #endif //TX_DELAY
 
 #ifdef SPLIT_OPERATION
-	if (split_mode) {
-		vfosel = tx_enable ? tx_vfosel : !tx_vfosel;
+	bool split_vfo = tx_vfosel != rx_vfosel;
+	if (split_vfo) {
+		vfosel = tx_enable ? tx_vfosel : rx_vfosel;
 		freq = vfo[vfosel];
 
-		commit_freq();
+		if (tx_enable) {
+			commit_freq();
+		}
 	}
 #endif //SPLIT_OPERATION
 
 	tx = tx_enable;
 
 #ifdef CAT_XO_CMD
-	if (rit || split_mode || tit)
+#if SPLIT_OPERATION
+	if (rit || tit || split_vfo)
 #else
-	if (rit || split_mode)
+	if (rit || tit)
+#endif
+#else
+#if SPLIT_OPERATION
+	if (rit || split_vfo)
+#else
+	if (rit)
+#endif
 #endif
 	{
 		lcd_block = 0;
@@ -4734,6 +4745,12 @@ void switch_rxtx(uint8_t tx_enable)
 			digitalWrite(PTX, LOW);   // TX (disable TX)
 #endif //PTX
 		}
+
+#ifdef SPLIT_OPERATION
+		if (split_vfo) {
+			commit_freq();
+		}
+#endif
 
 #ifdef RIT_ENABLE
 		si5351.freq_calc_fast(rit); si5351.SendPLLRegisterBulk();  // restore original PLL RX frequency
@@ -4959,7 +4976,7 @@ void show_banner() {
 #endif //QCX
 	lcd.print('\x01');
 #ifdef SPLIT_IN_BANNER
-	lcd.print(split_mode ? F(" S") : F("  "));
+	lcd.print(tx_vfosel == rx_vfosel ? F("  ") : F(" S"));
 #endif
 	lcd_blanks(); lcd_blanks();
 }
@@ -5199,10 +5216,10 @@ const char* agc_label[] = { "Off", "Fast", "Slow" };
 #define N_PARAMS 44+6  // number of (visible) parameters  // G8RDI mod +3 for added visible menu items
 #ifdef KEEP_BAND_DATA
 #define I_PARAMS 5+9
-enum params_t { _NULL, VOLUME, MODE, FILTER, BAND, STEP, VFOSEL, SPLIT, RIT, AGC, NR, ATT, ATT2, SMETER, SWRMETER, CWDEC, CWTONE, CWOFF, SEMIQSK, KEY_WPM, KEY_MODE, KEY_PIN, KEY_TX, TONE_VOL, VOX, VOXGAIN, DRIVE, TXDELAY, MOX, MICGAIN, DIGI, CWINTERVAL, CWMSG1, CWMSG2, CWMSG3, CWMSG4, CWMSG5, CWMSG6, PWM_MIN, PWM_MAX, SIFXTAL, IQ_ADJ, CAT_ACTIVE, QUAD_ACTIVE, CALIB, SR, CPULOAD, PARAM_A, PARAM_B, PARAM_C, BACKL, FREQA, FREQB, MODEA, MODEB, VERS, BAND_DATA0, BAND_DATA1, BAND_DATA2, BAND_DATA3, BAND_DATA4, BAND_DATA5, BAND_DATA6, BAND_DATA7, BAND_DATA8, ALL = 0xff };
+enum params_t { _NULL, VOLUME, MODE, FILTER, BAND, STEP, VFOSEL, TXVFOSEL, RIT, AGC, NR, ATT, ATT2, SMETER, SWRMETER, CWDEC, CWTONE, CWOFF, SEMIQSK, KEY_WPM, KEY_MODE, KEY_PIN, KEY_TX, TONE_VOL, VOX, VOXGAIN, DRIVE, TXDELAY, MOX, MICGAIN, DIGI, CWINTERVAL, CWMSG1, CWMSG2, CWMSG3, CWMSG4, CWMSG5, CWMSG6, PWM_MIN, PWM_MAX, SIFXTAL, IQ_ADJ, CAT_ACTIVE, QUAD_ACTIVE, CALIB, SR, CPULOAD, PARAM_A, PARAM_B, PARAM_C, BACKL, FREQA, FREQB, MODEA, MODEB, VERS, BAND_DATA0, BAND_DATA1, BAND_DATA2, BAND_DATA3, BAND_DATA4, BAND_DATA5, BAND_DATA6, BAND_DATA7, BAND_DATA8, ALL = 0xff };
 #else
 #define I_PARAMS 5
-enum params_t { _NULL, VOLUME, MODE, FILTER, BAND, STEP, VFOSEL, SPLIT, RIT, AGC, NR, ATT, ATT2, SMETER, SWRMETER, CWDEC, CWTONE, CWOFF, SEMIQSK, KEY_WPM, KEY_MODE, KEY_PIN, KEY_TX, TONE_VOL, VOX, VOXGAIN, DRIVE, TXDELAY, MOX, MICGAIN, DIGI, CWINTERVAL, CWMSG1, CWMSG2, CWMSG3, CWMSG4, CWMSG5, CWMSG6, PWM_MIN, PWM_MAX, SIFXTAL, IQ_ADJ, CAT_ACTIVE, QUAD_ACTIVE, CALIB, SR, CPULOAD, PARAM_A, PARAM_B, PARAM_C, BACKL, FREQA, FREQB, MODEA, MODEB, VERS, ALL = 0xff };
+enum params_t { _NULL, VOLUME, MODE, FILTER, BAND, STEP, VFOSEL, TXVFOSEL, RIT, AGC, NR, ATT, ATT2, SMETER, SWRMETER, CWDEC, CWTONE, CWOFF, SEMIQSK, KEY_WPM, KEY_MODE, KEY_PIN, KEY_TX, TONE_VOL, VOX, VOXGAIN, DRIVE, TXDELAY, MOX, MICGAIN, DIGI, CWINTERVAL, CWMSG1, CWMSG2, CWMSG3, CWMSG4, CWMSG5, CWMSG6, PWM_MIN, PWM_MAX, SIFXTAL, IQ_ADJ, CAT_ACTIVE, QUAD_ACTIVE, CALIB, SR, CPULOAD, PARAM_A, PARAM_B, PARAM_C, BACKL, FREQA, FREQB, MODEA, MODEB, VERS, ALL = 0xff };
 #endif
 #define N_ALL_PARAMS (N_PARAMS+I_PARAMS)  // number of parameters
 
@@ -5224,27 +5241,22 @@ int8_t paramAction(uint8_t action, uint8_t id = ALL)  // list of parameters
   case BAND:    paramAction(action, bandval, 0x14, F("Band"), band_label, 1, _N(band_label) - 6, false); break;  // G8RDI mod - for 5-band USDX
 #endif
 	case STEP:    paramAction(action, stepsize, 0x15, F("Tune Rate"), stepsize_label, 0, _N(stepsize_label) - 1, false); break;
-	case VFOSEL:  paramAction(action, vfosel, 0x16, F("VFO"), vfosel_label, 0, _N(vfosel_label) - 1, false);
+	case VFOSEL:  paramAction(action, vfosel, 0x16,
 #ifdef SPLIT_OPERATION
-		if (split_mode) {
-			tx_vfosel = !vfosel;
-		}
+	F("RX VFO"),
+#else
+	F("VFO"),
+#endif
+	vfosel_label, 0, _N(vfosel_label) - 1, false);
+#ifdef SPLIT_OPERATION
+		rx_vfosel = vfosel;
 #endif
 		break;
 #ifdef SPLIT_OPERATION
-	case SPLIT:  paramAction(action, split_mode, 0x17, F("Split VFO"), offon_label, 0, 1, false);
-		if (split_mode) {
-			tx_vfosel = !vfosel;
-			rit = 0;
-		}
-		break;
+	case TXVFOSEL:  paramAction(action, tx_vfosel, 0x17, F("TX VFO"), vfosel_label, 0, _N(vfosel_label) - 1, false); break;
 #endif
 #ifdef RIT_ENABLE
-	case RIT:     paramAction(action, rit, 0x18, F("RIT"), offon_label, 0, 1, false);
-		if (rit) {
-			split_mode = 0;
-		}
-		break;
+	case RIT:     paramAction(action, rit, 0x18, F("RIT"), offon_label, 0, 1, false); break;
 #endif
 #ifdef FAST_AGC
 	case AGC:     paramAction(action, agc, 0x19, F("AGC"), agc_label, 0, _N(agc_label) - 1, false); break;
@@ -5763,19 +5775,19 @@ void Command_SETFreq(bool vfoid)
 #ifdef CAT_SPLIT
 void Command_FR(bool vfoid)
 {
-	vfosel = vfoid;
-	freq = vfo[vfosel];
+	rx_vfosel = vfoid;
 
-	split_mode = (tx_vfosel != vfosel);
+	if (!tx) {
+		vfosel = rx_vfosel;
+		freq = vfo[vfosel];
 
-	change = true;
+		change = true;
+	}
 }
 
 void Command_FT(bool vfoid)
 {
 	tx_vfosel = vfoid;
-
-	split_mode = (tx_vfosel != vfosel);
 }
 #endif
 
@@ -5799,12 +5811,16 @@ void Command_IF()
 
 	sprintf(Catbuffer, "IF%02u%03u%03u%03u", g, m, k, h);
 	Serial.print(Catbuffer);
-	Serial.print("00000+0000000000");
+	Serial.print(F("00000+0000000000"));
 	Serial.print(mode + 1);
 	Serial.print(vfosel);
 	Serial.print('0');
-	Serial.print(split_mode);
-	Serial.print("0000;");
+#ifdef SPLIT_OPERATION
+	Serial.print(tx_vfosel != rx_vfosel);
+	Serial.print(F("0000;"));
+#else
+	Serial.print(F("00000;"));
+#endif
 }
 
 void Command_AI()
@@ -5848,9 +5864,6 @@ void Command_RTS()		// GW8RDI mod - added set RIT offset, i.e. "RTS30000;"
 	if (fq >= -99999 && fq <= 99999)   // Ignore corrupted freq data
 	{
 		rit = fq;
-		if (rit) {
-			split_mode = 0;
-		}
 		change = true;
 	}
 }
