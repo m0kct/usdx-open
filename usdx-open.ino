@@ -50,7 +50,7 @@ Global variables use 1499 bytes (73%) of dynamic memory, leaving 549 bytes for l
 */
 
 //  G8RDI Modifications log:
-#define VERSION   "5.0.1"    // Semantic versioning
+#define VERSION   "5.1.0"    // Semantic versioning
 
 // Additions and changes Copyright 2022-2023 GW8RDI - You can use and distribute if you maintain the copyright message, commercial use is prohibited.
 
@@ -252,6 +252,12 @@ Global variables use 1499 bytes (73%) of dynamic memory, leaving 549 bytes for l
 #endif
 
 #define CAT_FW_CMD 1 // CAT FW (filter width) command (get only)
+
+#define SPLIT_OPERATION 1 // Support split operation
+#ifdef SPLIT_OPERATION
+#define CAT_SPLIT       1 // CAT commands FB, FR, FT
+#define SPLIT_IN_BANNER 1 // Show 'S' for split mode in banner
+#endif
 
 // Lines below NEEDED FOR CW, removed to make space for CAT
 #define KEYER            1   // CW keyer for Iambic - NOTE: Auto CW msg sending aborts if not installed as changes dit timing. Can be removed to save memory for CAT
@@ -4420,6 +4426,9 @@ static uint8_t vfomode[] = { LSB, USB };  // G8RDI mod was USB, USB
 enum vfo_t { VFOA = 0, VFOB = 1 };
 volatile bool vfosel = VFOA;
 volatile bool split_mode = 0;
+#ifdef SPLIT_OPERATION
+volatile bool tx_vfosel = VFOA;
+#endif
 volatile int32_t rit = 0;	// GW8RDI mod - changed to int32_t from int16_t
 #ifdef CAT_XO_CMD
 volatile int32_t tit = 0;	// GW8RDI mod - added Transit offset, used with Quantum Spectrum module
@@ -4552,14 +4561,25 @@ void switch_rxtx(uint8_t tx_enable)
 #ifdef PTX
 			digitalWrite(PTX, HIGH);  // TX (enable TX)
 #endif //PTX
+
 			lcd_block = 0;
 			lcd.setCursor(15, 1); lcd.print('D');
 			lcd_block = 1;
+
 			interrupts();    //hack.. to allow delay()
 			delay(F_MCU / 16000000 * txdelay);
 			noInterrupts();  //end of hack
 		}
 #endif //TX_DELAY
+
+#ifdef SPLIT_OPERATION
+	if (split_mode) {
+		vfosel = tx_enable ? tx_vfosel : !tx_vfosel;
+		freq = vfo[vfosel];
+
+		commit_freq();
+	}
+#endif //SPLIT_OPERATION
 
 	tx = tx_enable;
 
@@ -4836,6 +4856,21 @@ void stepsize_change(int8_t val)
 	stepsize_showcursor();
 }
 
+void commit_freq() {
+	uint8_t f = freq / 1000000UL;
+	set_lpf(f);
+	bandval = (f > 32) ? 10 : (f > 26) ? 9 : (f > 22) ? 8 : (f > 20) ? 7 : (f > 16) ? 6 : (f > 12) ? 5 : (f > 8) ? 4 : (f > 6) ? 3 : (f > 4) ? 2 : (f > 2) ? 1 : 0;  prev_bandval = bandval; // align bandval with freq
+
+	if (mode == CW) {
+		si5351.freq(freq + cw_offset, rx_ph_q, 0/*90, 0*/);  // RX in CW-R (=LSB), correct for CW-tone offset
+	}
+	else
+		if (mode == LSB)
+			si5351.freq(freq, rx_ph_q, 0/*90, 0*/);  // RX in LSB
+		else
+			si5351.freq(freq, 0, rx_ph_q/*0, 90*/);  // RX in USB, ...
+}
+
 #ifdef POWER_DOWN
 void powerDown()
 { // Reduces power from 110mA to 70mA (back-light on) or 30mA (back-light off), remaining current is probably opamp quiescent current
@@ -4922,7 +4957,11 @@ void show_banner() {
 
 	lcd.print(szStation);   // "uSDX"
 #endif //QCX
-	lcd.print('\x01'); lcd_blanks(); lcd_blanks();
+	lcd.print('\x01');
+#ifdef SPLIT_IN_BANNER
+	lcd.print(split_mode ? F(" S") : F("  "));
+#endif
+	lcd_blanks(); lcd_blanks();
 }
 
 const char* vfosel_label[] = { "A", "B" };
@@ -5157,13 +5196,13 @@ const char* agc_label[] = { "Off", "Fast", "Slow" };
 
 #define _N(a) sizeof(a)/sizeof(a[0])
 
-#define N_PARAMS 44+5  // number of (visible) parameters  // G8RDI mod +3 for added visible menu items
+#define N_PARAMS 44+6  // number of (visible) parameters  // G8RDI mod +3 for added visible menu items
 #ifdef KEEP_BAND_DATA
 #define I_PARAMS 5+9
-enum params_t { _NULL, VOLUME, MODE, FILTER, BAND, STEP, VFOSEL, RIT, AGC, NR, ATT, ATT2, SMETER, SWRMETER, CWDEC, CWTONE, CWOFF, SEMIQSK, KEY_WPM, KEY_MODE, KEY_PIN, KEY_TX, TONE_VOL, VOX, VOXGAIN, DRIVE, TXDELAY, MOX, MICGAIN, DIGI, CWINTERVAL, CWMSG1, CWMSG2, CWMSG3, CWMSG4, CWMSG5, CWMSG6, PWM_MIN, PWM_MAX, SIFXTAL, IQ_ADJ, CAT_ACTIVE, QUAD_ACTIVE, CALIB, SR, CPULOAD, PARAM_A, PARAM_B, PARAM_C, BACKL, FREQA, FREQB, MODEA, MODEB, VERS, BAND_DATA0, BAND_DATA1, BAND_DATA2, BAND_DATA3, BAND_DATA4, BAND_DATA5, BAND_DATA6, BAND_DATA7, BAND_DATA8, ALL = 0xff };
+enum params_t { _NULL, VOLUME, MODE, FILTER, BAND, STEP, VFOSEL, SPLIT, RIT, AGC, NR, ATT, ATT2, SMETER, SWRMETER, CWDEC, CWTONE, CWOFF, SEMIQSK, KEY_WPM, KEY_MODE, KEY_PIN, KEY_TX, TONE_VOL, VOX, VOXGAIN, DRIVE, TXDELAY, MOX, MICGAIN, DIGI, CWINTERVAL, CWMSG1, CWMSG2, CWMSG3, CWMSG4, CWMSG5, CWMSG6, PWM_MIN, PWM_MAX, SIFXTAL, IQ_ADJ, CAT_ACTIVE, QUAD_ACTIVE, CALIB, SR, CPULOAD, PARAM_A, PARAM_B, PARAM_C, BACKL, FREQA, FREQB, MODEA, MODEB, VERS, BAND_DATA0, BAND_DATA1, BAND_DATA2, BAND_DATA3, BAND_DATA4, BAND_DATA5, BAND_DATA6, BAND_DATA7, BAND_DATA8, ALL = 0xff };
 #else
 #define I_PARAMS 5
-enum params_t { _NULL, VOLUME, MODE, FILTER, BAND, STEP, VFOSEL, RIT, AGC, NR, ATT, ATT2, SMETER, SWRMETER, CWDEC, CWTONE, CWOFF, SEMIQSK, KEY_WPM, KEY_MODE, KEY_PIN, KEY_TX, TONE_VOL, VOX, VOXGAIN, DRIVE, TXDELAY, MOX, MICGAIN, DIGI, CWINTERVAL, CWMSG1, CWMSG2, CWMSG3, CWMSG4, CWMSG5, CWMSG6, PWM_MIN, PWM_MAX, SIFXTAL, IQ_ADJ, CAT_ACTIVE, QUAD_ACTIVE, CALIB, SR, CPULOAD, PARAM_A, PARAM_B, PARAM_C, BACKL, FREQA, FREQB, MODEA, MODEB, VERS, ALL = 0xff };
+enum params_t { _NULL, VOLUME, MODE, FILTER, BAND, STEP, VFOSEL, SPLIT, RIT, AGC, NR, ATT, ATT2, SMETER, SWRMETER, CWDEC, CWTONE, CWOFF, SEMIQSK, KEY_WPM, KEY_MODE, KEY_PIN, KEY_TX, TONE_VOL, VOX, VOXGAIN, DRIVE, TXDELAY, MOX, MICGAIN, DIGI, CWINTERVAL, CWMSG1, CWMSG2, CWMSG3, CWMSG4, CWMSG5, CWMSG6, PWM_MIN, PWM_MAX, SIFXTAL, IQ_ADJ, CAT_ACTIVE, QUAD_ACTIVE, CALIB, SR, CPULOAD, PARAM_A, PARAM_B, PARAM_C, BACKL, FREQA, FREQB, MODEA, MODEB, VERS, ALL = 0xff };
 #endif
 #define N_ALL_PARAMS (N_PARAMS+I_PARAMS)  // number of parameters
 
@@ -5185,7 +5224,21 @@ int8_t paramAction(uint8_t action, uint8_t id = ALL)  // list of parameters
   case BAND:    paramAction(action, bandval, 0x14, F("Band"), band_label, 1, _N(band_label) - 6, false); break;  // G8RDI mod - for 5-band USDX
 #endif
 	case STEP:    paramAction(action, stepsize, 0x15, F("Tune Rate"), stepsize_label, 0, _N(stepsize_label) - 1, false); break;
-	case VFOSEL:  paramAction(action, vfosel, 0x16, F("VFO"), vfosel_label, 0, _N(vfosel_label) - 1, false); break;
+	case VFOSEL:  paramAction(action, vfosel, 0x16, F("VFO"), vfosel_label, 0, _N(vfosel_label) - 1, false);
+#ifdef SPLIT_OPERATION
+		if (split_mode) {
+			tx_vfosel = !vfosel;
+		}
+#endif
+		break;
+#ifdef SPLIT_OPERATION
+	case SPLIT:  paramAction(action, split_mode, 0x17, F("Split VFO"), offon_label, 0, 1, false);
+		if (split_mode) {
+			tx_vfosel = !vfosel;
+			rit = 0;
+		}
+		break;
+#endif
 #ifdef RIT_ENABLE
 	case RIT:     paramAction(action, rit, 0x18, F("RIT"), offon_label, 0, 1, false);
 		if (rit) {
@@ -5446,6 +5499,13 @@ void analyseCATcmd()    // Supported Kenwood TS-480 protocol CAT commands
 		else
 			Command_SETFreq(CATcmd[1] == 'B');
 	}
+#ifdef CAT_SPLIT
+	else if ((CATcmd[0] == 'F') && (CATcmd[1] == 'R') && (CATcmd[2] == '0' || CATcmd[2] == '1') && (CATcmd[3] == ';'))
+		Command_FR(CATcmd[2] == '1');
+
+	else if ((CATcmd[0] == 'F') && (CATcmd[1] == 'T') && (CATcmd[2] == '0' || CATcmd[2] == '1') && (CATcmd[3] == ';'))
+		Command_FT(CATcmd[2] == '1');
+#endif
 
 	else if ((CATcmd[0] == 'I') && (CATcmd[1] == 'F') && (CATcmd[2] == ';'))
 		Command_IF();
@@ -5658,7 +5718,11 @@ void Command_GETFreq(bool vfoid)
 	unsigned int g, m, k, h;
 	uint32_t tf;
 
+#ifdef CAT_SPLIT
+	tf = vfo[vfoid];
+#else
 	tf = freq;
+#endif
 	g = (unsigned int)(tf / 1000000000lu);
 	tf -= g * 1000000000lu;
 	m = (unsigned int)(tf / 1000000lu);
@@ -5683,10 +5747,37 @@ void Command_SETFreq(bool vfoid)
 	uint32_t fq = (uint32_t)atol(CATcmd + 2);  // "FA00024000000;" GW8RDI mod - CAT freq error check
 	if (fq >= 1500000 && fq <= 60000000)   // Ignore corrupted freq data
 	{
+#ifdef CAT_SPLIT
+		if (vfoid == vfosel) {
+			freq = fq;
+		} else {
+			vfo[vfoid] = fq;
+		}
+#else
 		freq = fq;
+#endif
 		change = true;
 	}
 }
+
+#ifdef CAT_SPLIT
+void Command_FR(bool vfoid)
+{
+	vfosel = vfoid;
+	freq = vfo[vfosel];
+
+	split_mode = (tx_vfosel != vfosel);
+
+	change = true;
+}
+
+void Command_FT(bool vfoid)
+{
+	tx_vfosel = vfoid;
+
+	split_mode = (tx_vfosel != vfosel);
+}
+#endif
 
 void Command_IF()
 {
@@ -7050,18 +7141,9 @@ void loop()
 		}
 
 		//noInterrupts();
-		uint8_t f = freq / 1000000UL;
-		set_lpf(f);
-		bandval = (f > 32) ? 10 : (f > 26) ? 9 : (f > 22) ? 8 : (f > 20) ? 7 : (f > 16) ? 6 : (f > 12) ? 5 : (f > 8) ? 4 : (f > 6) ? 3 : (f > 4) ? 2 : (f > 2) ? 1 : 0;  prev_bandval = bandval; // align bandval with freq
+		commit_freq();
 
-		if (mode == CW) {
-			si5351.freq(freq + cw_offset, rx_ph_q, 0/*90, 0*/);  // RX in CW-R (=LSB), correct for CW-tone offset
-		}
-		else
-			if (mode == LSB)
-				si5351.freq(freq, rx_ph_q, 0/*90, 0*/);  // RX in LSB
-			else
-				si5351.freq(freq, 0, rx_ph_q/*0, 90*/);  // RX in USB, ...
+
 #ifdef RIT_ENABLE
 		if (rit) { si5351.freq_calc_fast(rit); si5351.SendPLLRegisterBulk(); }
 #endif //RIT_ENABLE
