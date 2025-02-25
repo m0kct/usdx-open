@@ -2387,8 +2387,8 @@ inline int16_t ssb(int16_t in)
 #ifdef DIG_MODE
 		if (dig_mode) {
 			int16_t ac = in;
-			dc = (ac + (7) * dc) / (7 + 1);  // hpf: slow average
-			v[15] = (ac - dc) / 2;           // hpf (dc decoupling)  (-6dB gain to compensate for DC-noise)
+			dc = (ac + (7) * dc)>>3;  // hpf: slow average
+			v[15] = (ac - dc)>>1;           // hpf (dc decoupling)  (-6dB gain to compensate for DC-noise)
 		} else {
 #endif
 			int16_t ac = in * 2;             //   6dB gain (justified since lpf/hpf is losing -3dB)
@@ -2406,14 +2406,14 @@ inline int16_t ssb(int16_t in)
 	} else {
 #endif
 		//dc += (in - dc) / 2;       // fast moving average
-		dc = (in + dc) / 2;        // average
+		dc = (in + dc)>>1;        // average
 		int16_t ac = (in - dc);   // DC decoupling
 		//v[15] = ac;// - z1;        // high-pass (emphasis) filter
 		v[15] = (ac + z1);// / 2;           // low-pass filter with notch at Fs/2
 		z1 = ac;
 
 		i = v[7];
-		q = ((v[0] - v[14]) * 2 + (v[2] - v[12]) * 8 + (v[4] - v[10]) * 21 + (v[6] - v[8]) * 15) / 128 + (v[6] - v[8]) / 2; // Hilbert transform, 40dB side-band rejection in 400..1900Hz (@4kSPS) when used in image-rejection scenario; (Hilbert transform require 5 additional bits)
+		q = ((v[0] - v[14]) * 2 + (v[2] - v[12]) * 8 + (v[4] - v[10]) * 21 + ((v[6] - v[8]) * 15)>>7) + ((v[6] - v[8])>>1); // Hilbert transform, 40dB side-band rejection in 400..1900Hz (@4kSPS) when used in image-rejection scenario; (Hilbert transform require 5 additional bits)
 
 		_amp = magn(i, q);
 #ifdef MORE_MIC_GAIN
