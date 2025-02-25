@@ -2360,8 +2360,8 @@ volatile uint8_t more_mic_gain = 0;
 volatile uint8_t dig_mode = 0;
 #endif
 #else
-volatile uint8_t vox_thresh = 1;
 #endif
+volatile uint8_t vox_thresh = 1;
 volatile uint8_t drive = 7;   // hmm.. drive>2 impacts cpu load..why?
 
 static uint8_t cat_enabled = true;  // G8RDI mod - added
@@ -5048,6 +5048,9 @@ uint16_t eeprom_version;
 #define EEPROM_OFFSET 0x150  // avoid collision with QCX settings, overwrites text settings though
 int eeprom_addr;
 
+const char *save_label[] = { "Off", "Now", "Auto" };
+volatile uint8_t save_enabled = 0;
+
 // Support functions for parameter and menu handling
 enum action_t { UPDATE, UPDATE_MENU, NEXT_MENU, LOAD, SAVE, SKIP, NEXT_CH };
 
@@ -5211,9 +5214,6 @@ const char* cw_tone_label[] = { "700", "600" };
 const char* keyer_mode_label[] = { "Iambic A", "Iambic B", "Straight" };  // GW8RDI mod - byte saving was "Iambic A"
 #endif
 const char* agc_label[] = { "Off", "Fast", "Slow" };
-
-const char *save_label[] = { "Off", "Now", "Auto" };
-volatile uint8_t save_enabled = 0;
 
 #define _N(a) sizeof(a)/sizeof(a[0])
 
