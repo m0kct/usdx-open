@@ -1959,7 +1959,7 @@ public:
 	}
 	void powerDown() {
 		SendRegister(3, 0b11111111); // Disable all CLK outputs
-		SendRegister(24, 0b00000000); // Disable state: LOW state when disabled
+		SendRegister(24, 0b00010000); // Disable state: CLK2 HIGH state, CLK0 & CLK1 LOW state when disabled; CLK2 needs to be in HIGH state to make sure that cap to gate is already charged, preventing "exponential pulse is caused by CLK2, which had been at 0v whilst it was disabled, suddenly generating a 5vpp waveform, which is “added to” the 0v filtered PWM output and causing the output fets to be driven with the full 5v pp.", see: https://forum.dl2man.de/viewtopic.php?t=146&p=1307#p1307
 		SendRegister(25, 0b00000000); // Disable state: LOW state when disabled
 		for (int addr = 16; addr != 24; addr++) SendRegister(addr, 0b10000000);  // Conserve power when output is disabled
 		SendRegister(187, 0);        // Disable fanout (power-safe)
@@ -2554,7 +2554,7 @@ void dsp_tx_cw()
 #ifdef KEY_CLICK
 	if (OCR1BL < lut[255]) { //check if already ramped up: ramp up of amplitude 
 		for (uint16_t i = 31; i != 0; i--) {   // soft rising slope against key-clicks
-			OCR1BL = lut[pgm_read_byte_near(ramp[i])];
+			OCR1BL = lut[pgm_read_byte_near(&ramp[i-1])];
 			delayMicroseconds(60);
 		}
 	}
@@ -4712,7 +4712,7 @@ void switch_rxtx(uint8_t tx_enable)
 #ifdef KEY_CLICK
 		if (OCR1BL != 0) {
 			for (uint16_t i = 0; i != 31; i++) {   // ramp down of amplitude: soft falling edge to prevent key clicks
-				OCR1BL = lut[pgm_read_byte_near(ramp[i])];
+				OCR1BL = lut[pgm_read_byte_near(&ramp[i])];
 				delayMicroseconds(60);
 			}
 		}
