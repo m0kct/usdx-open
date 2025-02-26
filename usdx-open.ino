@@ -5050,6 +5050,7 @@ int eeprom_addr;
 
 const char *save_label[] = { "Off", "Now", "Auto" };
 volatile uint8_t save_enabled = 0;
+volatile uint8_t save_enabled_temp = 0;
 
 // Support functions for parameter and menu handling
 enum action_t { UPDATE, UPDATE_MENU, NEXT_MENU, LOAD, SAVE, SKIP, NEXT_CH };
@@ -5092,7 +5093,7 @@ void actionCommon(uint8_t action, uint8_t * ptr, uint8_t size) {
 	case SAVE:
 		//noInterrupts();
 		//for(n = size; n; --n){ wdt_reset(); eeprom_write_byte((uint8_t *)eeprom_addr++, *ptr++); }
-		if (save_enabled) {
+		if (save_enabled || save_enabled_temp) {
 			eeprom_write_block((const void*)ptr, (void*)eeprom_addr, size);
 		}
 		//interrupts();
@@ -5388,11 +5389,10 @@ int8_t paramAction(uint8_t action, uint8_t id = ALL)  // list of parameters
 	case BACKL:   paramAction(action, backlight, 0xA1, F("Backlight"), offon_label, 0, 1, false); break;   // GW8RDI "Backlight" workaround for varying N_PARAM and not being able to overflowing default cases properly
 	case SAVEALL: paramAction(action, save_enabled, 0xB1, F("Save"), save_label, 0, _N(save_label) - 1, false);
 		if (save_enabled == 1) {
-			paramAction(SAVE);
-
 			save_enabled = 0;
-
-			paramAction(SAVE, SAVEALL);
+			save_enabled_temp = 1;
+			paramAction(SAVE);
+			save_enabled_temp = 0;
 		}
 		break;
 		// Invisible parameters
@@ -6294,8 +6294,10 @@ void setup()
 		mode_last[0] = mode_last[1] = mode_last[2] = mode_last[3] = LSB;
 		mode_last[4] = mode_last[5] = mode_last[6] = mode_last[7] = mode_last[8] = USB;   // Set for up to 9 bands only xyzzy
 		*/
+		save_enabled_temp = 1;
 		paramAction(SAVE);  // save default parameter values
-		lcd.setCursor(0, 1); lcd.print(F("Reset settings.."));
+		save_enabled_temp = 0;
+		lcd.setCursor(0, 1); lcd.print(F("Reset settings!"));
 		delay(500); wdt_reset();
 	}
 	else {
