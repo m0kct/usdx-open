@@ -348,7 +348,7 @@ Global variables use 1499 bytes (73%) of dynamic memory, leaving 549 bytes for l
 #ifdef RIT_ENABLE
 //#define CAT_RIT		 1   // CAT RTS command
 #endif
-#define VOX_ENABLE       1   // Voice-On-Xmit which is switching the transceiver into transmit as soon audio is detected (above noise gate level)
+//#define VOX_ENABLE       1   // Voice-On-Xmit which is switching the transceiver into transmit as soon audio is detected (above noise gate level)
 #define MOX_ENABLE     1   // Monitor-On-Xmit which is audio monitoring on speaker during transmit
 
 //#define ONEBUTTON      1   // Use single (encoder) button to control full the rig; optionally use L/R buttons to completely replace rotory encoder function
@@ -2879,7 +2879,7 @@ volatile uint8_t agc = 2;
 #endif
 volatile uint8_t nr = 0;
 volatile uint8_t att = 0;
-volatile uint8_t att2 = 1;  // Minimum att2 increased, to prevent numeric overflow on strong signals
+volatile uint8_t att2 = 0;  // Minimum att2 increased, to prevent numeric overflow on strong signals
 volatile uint8_t _init = 0;
 
 // Old AGC algorithm which only increases gain, but does not decrease it for very strong signals.
@@ -5315,8 +5315,8 @@ int8_t paramAction(uint8_t action, uint8_t id = ALL)  // list of parameters
 #endif
 #ifdef VOX_ENABLE
 	case VOX:     paramAction(action, vox, 0x31, F("VoX"), offon_label, 0, 1, false); break;
-	case VOXGAIN: paramAction(action, vox_thresh, 0x32, F("Noise Gate"), NULL, 0, 255, false); break; // GW8RDI mod - "Noise Gate" save bytes
 #endif
+	case VOXGAIN: paramAction(action, vox_thresh, 0x32, F("Noise Gate"), NULL, 0, 255, false); break; // GW8RDI mod - "Noise Gate" save bytes
 	case DRIVE:   paramAction(action, drive, 0x33, F("TX Drive"), NULL, 0, 8, false); break;
 #ifdef TX_DELAY
 	case TXDELAY: paramAction(action, txdelay, 0x34, F("TX Delay"), NULL, 0, 255, false); break;
@@ -6263,7 +6263,7 @@ void setup()
 #endif //TX_ENABLE
 #endif  // DIAG
 
-	drive = 4;  // Init settings
+	drive = 7;  // Init settings
 #ifdef QCX
 	if (!ssb_cap) { vfomode[0] = CW; vfomode[1] = CW; filt = 4; stepsize = STEP_500; }
 	if (dsp_cap != SDR) pwm_max = 255; // implies that key-shaping circuit is probably present, so use full-scale
